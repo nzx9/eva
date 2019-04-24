@@ -1,6 +1,4 @@
 "use strict";
-
-
 $(() => {
     // Some sanity checks that can't be used
 
@@ -18,6 +16,8 @@ $(() => {
         videoStart: window.video.start_time,
         videoEnd: window.video.end_time,
         isImageSequence: window.video.is_image_sequence,
-        turkMetadata: window.video.turk_task,
+        offset:window.offset,
+        videoChunkSize:window.videoChunkSize,
+        videoIndex:window.videoIndex,
     });
 });

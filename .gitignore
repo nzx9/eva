@@ -2,5 +2,7 @@
 venv
 __pycache__
 deploy_settings.py
-static
 s3cfg
+.idea/
+media
+mturk

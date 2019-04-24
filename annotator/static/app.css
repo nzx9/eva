@@ -4,7 +4,14 @@
     height: 100%;
     padding: 0;
 }
-
+.select-button {
+    padding: 7px 10px;
+    margin: 3px 0;
+    display: inline-block;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
 .top-controls {
     padding: 15px 15px 15px 20px;
 }
@@ -15,6 +22,16 @@
     border-radius: 0;
     border-top-left-radius: 0;
     border-top-right-radius: 0;
+}
+.btn-btn-default{
+    color: black;
+    margin-left: 20px;
+    border-radius: 4px;
+    padding: 7px 10px;
+    display: inline-block;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+
 }
 
 /* Player */
@@ -175,6 +192,12 @@ div.imgplay {
 }
 
 
+.define-video-name{
+    text-align: center;
+
+
+}
+
 /* Uncategorized rules below */
 
 #left-container {
@@ -243,3 +266,29 @@ div.imgplay {
     font-weight: 300;
     font-size: 18px;
 }
+
+.wrap {
+    text-align: left;
+    padding: 0 50px 25px 50px;
+}
+
+#dropzone{
+    height: 80px;
+    line-height: 50px;
+    margin-top: 1%;
+    margin-left: 50px;
+    margin-right: 50px;
+    text-align: center;
+    font-weight: bold;
+
+}
+#message-div{
+    height: 50px;
+    margin-top: 1%;
+    margin-left: 50px;
+    margin-right: 50px;
+    text-align: center;
+    font-weight: bold;
+
+}
+

@@ -31,6 +31,7 @@
     "DataSources",
     "Misc",
     "Player",
+    "Tracker",
 
     // views
     "Keyframebar",

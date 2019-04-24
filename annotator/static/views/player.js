@@ -1,6 +1,5 @@
 "use strict";
 
-
 // Constants. ES6 doesn't support class constants yet, thus this hack.
 var PlayerViewConstants = {
     // Value of .player-control-scrubber[max]
@@ -12,7 +11,7 @@ var PlayerViewConstants = {
 
 
 class PlayerView {
-    constructor({$container, videoSrc, videoStart, videoEnd, isImageSequence}) {
+    constructor({$container, videoSrc, videoStart, videoEnd, isImageSequence,offset,videoChunkSize,videoIndex}) {
         // This container of the player
         this.$container = $container;
 
@@ -24,6 +23,8 @@ class PlayerView {
 
         // The invisible rect that receives drag events not targeted at speciifc
         this.creationRect = null;
+
+        this.crosshairs = null;
 
         // The keyframebar
         this.keyframebar = null;
@@ -51,6 +52,13 @@ class PlayerView {
 
         // Video end time
         this.videoEnd = videoEnd;
+
+        this.offset = offset;
+
+        this.videoChunkSize = videoChunkSize;
+
+        this.videoIndex = videoIndex;
+
 
         // are we waiting for buffering
         this.loading = true;
@@ -82,6 +90,7 @@ class PlayerView {
 
         if (helpEmbedded) {
             // check cookie
+
             var hasSeen = document.cookie && document.cookie.indexOf('has_seen_help=') > -1
             if (!hasSeen) {
                 $('#instructionModal').modal();
@@ -99,6 +108,7 @@ class PlayerView {
         }
         else {
             this.$('loader').css({display: 'none'});
+            this.jumpToTimeAndPause(this.video.currentTime);
         }
         this._loading = val;
     }
@@ -120,8 +130,14 @@ class PlayerView {
 
             var css = {
                 position: 'absolute',
-                top: 0,
+                'margin-left': 'auto',
+                'margin-right': 'auto',
+                'margin-top': 'auto',
+                'margin-bottom': 'auto',
                 left: 0,
+                right: 0,
+                top : 0,
+                bottom : 0,
                 'width': `${viewWidth}px`,
                 'height': `${viewHeight}px`,
             };
@@ -136,19 +152,49 @@ class PlayerView {
             this.creationRect = this.makeAndAttachRect(CreationRect);
             this.rects = [];
 
-            $(this.creationRect).on('create-bounds', (e, bounds) => {
+            $(this.creationRect).on('create-bounds', (e, bounds) => { // here you mark the object (mark)
                 var rect = this.addRect();
                 rect.bounds = bounds;
                 rect.focus();
                 $(this).triggerHandler('create-rect', rect);
             });
 
+            this.drawCrosshairs();
+
             this.paperReady.resolve();
         });
     }
 
+    drawCrosshairs() {
+        // Create lines
+        var h_line = this.$paper.path("M0 0L" + this.$paper.width + " 0").attr({stroke:'#FFFFFF'});
+        var v_line = this.$paper.path("M0 0L0 " + this.$paper.height).attr({stroke:'#FFFFFF'});
+        // Push lines back, so they will not have mouse focus
+        h_line.toBack();
+        v_line.toBack();
+
+        var that = this;
+
+        // After creating a box, push lines back, so the CreationRect will have mouse focus
+        $(this.creationRect).on('drag-end', function(){
+            h_line.toBack();
+            v_line.toBack();
+        });
+
+        // Move lines with mouse
+        $(this.$paper.canvas).bind('mousemove', function(e) {
+            var {offset, scale} = that.metrics();
+
+            var x = (e.pageX - offset.left) / scale;
+            var y = (e.pageY - offset.top) / scale;
+
+            h_line.transform("T" + 0 + "," + y);
+            v_line.transform("T" + x + "," + 0);
+        });
+    }
+
     sizeVideoFrame() {
-        if (!this.scaleToFit) {
+        if (this.scaleToFit) {
             var height = this.video.videoHeight;
             if (this.$('video').width() < this.video.videoWidth) {
                 height = height * (this.$('video').width() / this.video.videoWidth);
@@ -175,9 +221,8 @@ class PlayerView {
     }
 
     initVideo() {
-        this.video = AbstractFramePlayer.newFramePlayer(this.$('video')[0], { images: imageList, videoSrc: this.videoSrc });
-
-        // need to set the current time by default -  if (this.videoStart != null) { this.video.currentTime = this.videoStart; }
+        this.video = AbstractFramePlayer.newFramePlayer(this.$('video')[0], { images: imageList, videoSrc: this.videoSrc },this.offset,this.videoChunkSize,this.videoIndex);
+        //need to set the current time by default -  if (this.videoStart != null) { this.video.currentTime = this.videoStart; }
         this.video.onPlaying(() => {
             clearInterval(this.manualTimeupdateTimerId);
             this.manualTimeupdateTimerId = setInterval(() => {
@@ -185,7 +230,7 @@ class PlayerView {
             }, this.TIME_UPDATE_DELAY);
         });
         this.video.onPause(() => {
-            clearInterval(this.manualTimeupdateTimerId);
+             clearInterval(this.manualTimeupdateTimerId);
         });
         this.video.onLoadedMetadata(() => {
             this.videoReady.resolve();
@@ -196,6 +241,8 @@ class PlayerView {
         });
         this.video.onBuffering((isBuffering) => {
             this.loading = isBuffering;
+            //this.pause()
+
         })
     }
 
@@ -224,10 +271,13 @@ class PlayerView {
             // controls => video
             this.$on('control-play-pause', 'click', (event) => {this.playPause()});
             this.$on('control-step-backward', 'click', (event) => {this.video.previousFrame()});
-            this.$on('control-step-forward', 'click', (event) => {this.video.nextFrame()});
+            this.$on('control-step-forward', 'click', (event) => {this.nextFrame()});
             this.$on('control-goto-start', 'click', () => this.jumpToTimeAndPause(0));
             this.$on('control-goto-end', 'click', () => this.jumpToTimeAndPause(this.video.duration));
-            this.$on('control-delete-keyframe', 'click', () => this.deleteKeyframe());
+            this.$on('control-delete-keyframe', 'click', () => this.deleteSingleKeyframe());
+            this.$on('control-delete-all-future-keyframes', 'click', () => this.deleteKeyframes());
+            this.$on('control-start-tracker', 'click', () => this.runTrackerAll());
+            this.$on('control-lock-unlock-object', 'click', () => this.lockUnlockAnnotation())
 
             // better key events => video
             // play/pause
@@ -239,43 +289,92 @@ class PlayerView {
             $(this).on('keydn-period    keydn-e', () => this.play());
             $(this).on('keyup-period    keyup-e', () => this.pause());
             // Delete keyframe
-            $(this).on('keyup-delete    keyup-d', () => this.deleteKeyframe());
+            $(this).on('keyup-delete           ', () => this.deleteKeyframes());
+            // Delete single keyframe
+            $(this).on('keyup-d'                , () => this.deleteSingleKeyframe());
             // Keyframe stepping
             $(this).on('keydn-g                ', () => this.stepforward());
             $(this).on('keydn-f                ', () => this.stepbackward());
             // Keyframe duplication
             $(this).on('keydn-r                ', () => this.duplicateKeyFrame());
+            //run tracker
+            $(this).on('keydn-t                ', () => this.runTrackerAll());
+            //lock or unlock annotated object
+            $(this).on('keydn-l keydnr-l              ', () => this.lockUnlockAnnotation());
             // video frame stepping - capture the repeat events with the 'r' handler
             $(this).on('keydn-a keydnr-a     ', () => {
-                if (!this.loading)
-                    this.video.previousFrame()
+                if (this.loading) {
+                    return;
+                }
+                if (this.video.imgPlayer.isPlaying()) {
+                    this.pause();
+                }
+                this.video.previousFrame();
             });
             $(this).on('keydn-s keydnr-s    ', () => {
-                if (!this.loading)
-                    this.video.nextFrame()
+                if (this.loading) {
+                    return;
+                }
+                if (this.video.imgPlayer.isPlaying()) {
+                    this.pause();
+                }
+                this.nextFrame();
             });
             $('#scale-checkbox').on('click', () => {
                 this.scaleToFit = $('#scale-checkbox')[0].checked;
-                if (this.scaleToFit) {
+                if (!this.scaleToFit) {
+                $(this.$paper.canvas).removeAttr(
+                    'position'
+                ).css({
+                    position: 'absolute',
+                });
                     this.$('video').css({
                         height: `100%`,
+                        width : `100%`,
                         'flex-grow': 1
                     });
                 }
                 else {
+
+                    $(this.$paper.canvas).removeAttr(
+                        'position'
+                    ).css({
+                        position: 'relative',
+                    });
                     this.$('video').css({
                         'flex-grow': 0
                     });
                 }
+
                 this.video.fit();
                 this.sizeVideoFrame();
             });
+            $('#labels').on('keydown', function(e) {
+                // Taken from https://stackoverflow.com/questions/1227146/disable-keyboard-in-html-select-tag/1227352#1227352
+                var ev = e ? e : window.event;
+                if(ev)
+                {
+                    if(ev.preventDefault)
+                       ev.preventDefault();
+                    else
+                      ev.returnValue = false;
+                }
+            });
             this.sizeVideoFrame();
             this.loading = false;
+            this.video.fit();
+            this.sizeVideoFrame();
         });
     }
+    
+    loadEditLabelModal(data) {
+        var annotation = data.annotation;
+        var type = annotation.type;
+        $('select[name=edit-label]').find('option[value="' + type + '"]').prop('selected', true);
+        $('#edit-label-modal').find('#change-label').data("annotation", annotation);
+    }
 
-    // Time control
+     // Time control
     stepforward() {
         $(this).trigger('step-forward-keyframe');
     }
@@ -284,10 +383,21 @@ class PlayerView {
         $(this).trigger('step-backward-keyframe');
     }
 
+    nextFrame(){
+        this.video.nextFrame();
+    }
+
     play() {
-        if (this.video.currentTime < this.video.duration) {
-            this.video.play();
-        }
+        if(this.video.currentTime==this.offset+this.video.duration){
+            this.jumpToTimeAndPause(1);
+        };
+        this.video.play();
+        return false;
+    }
+
+    stop()
+    {
+        this.video.stop();
         return false;
     }
 
@@ -298,8 +408,7 @@ class PlayerView {
 
     playPause() {
         if (this.video.paused) {
-
-            return this.play();
+             return this.play();
         }
         else {
             return this.pause();
@@ -338,11 +447,22 @@ class PlayerView {
         return false;
     }
 
-    deleteKeyframe() {
-        $(this).trigger('delete-keyframe');
+    runTrackerAll(){
+        $('#tracker-btn').prop('disabled', true);
+        $(this).trigger('trackAll');
+
+    }
+
+    deleteKeyframes() {
+        $(this).trigger('annotator-delete-keyframes');
+    }
+
+    deleteSingleKeyframe() {
+        $(this).trigger('annotator-delete-single-keyframe');
     }
 
     checkTimeRange() {
+
         var currentTime = this.$('control-time').val();
         var time = {
             closestTimeinRange: currentTime,
@@ -351,10 +471,8 @@ class PlayerView {
         };
         if (this.videoStart != null && currentTime < this.videoStart) {
             time.closestTimeinRange = this.videoStart;
-            time.violatesStartTime = true;
         } else if (this.videoEnd != null && currentTime > this.videoEnd) {
             time.closestTimeinRange = this.videoEnd;
-            time.violatesEndTime = true;
         }
         return time;
     }
@@ -424,12 +542,12 @@ class PlayerView {
     togglePlayPauseIcon() {
         var btnIcon = $('.player-control-play-pause');
         if (this.video.paused) {
-            btnIcon.addClass('glyphicon-play');
-            btnIcon.removeClass('glyphicon-pause');
+            btnIcon.addClass('fa-play');
+            btnIcon.removeClass('fa-pause');
         }
         else {
-            btnIcon.addClass('glyphicon-pause');
-            btnIcon.removeClass('glyphicon-play');
+            btnIcon.addClass('fa-pause');
+            btnIcon.removeClass('fa-play');
         }
     }
 
@@ -437,11 +555,13 @@ class PlayerView {
         $(this).trigger('duplicate-keyframe');
     }
 
+    lockUnlockAnnotation(){
+        $(this).trigger('annotator-lock-unlock-object');
+    }
 
     // UI getters and setters
-
     get controlTime() {
-        return parseFloat(this.$('control-time').val());
+         return parseFloat(this.$('control-time').val());
     }
 
     get controlTimeUnfocused() {
@@ -450,14 +570,14 @@ class PlayerView {
 
     set controlTimeUnfocused(value) {
         var timeRange = this.checkTimeRange();
-        this.$('control-time:not(:focus)').val(value.toFixed(2));
+        this.$('control-time:not(:focus)').val((value).toFixed(2));
         if (timeRange.violatesStartTime || timeRange.violatesEndTime) {
             this.fixVideoTime(timeRange.closestTimeinRange);
         }
     }
 
     get controlScrubber() {
-        return parseFloat(this.$('control-scrubber').val()) / this.CONTROL_SCRUBBER_GRANULARITY * this.video.duration;
+        return parseFloat(this.$('control-scrubber').val()) / this.CONTROL_SCRUBBER_GRANULARITY * (this.video.duration) + this.offset;
     }
 
     get controlScrubberInactive() {
@@ -466,7 +586,7 @@ class PlayerView {
 
     set controlScrubberInactive(value) {
         var timeRange = this.checkTimeRange();
-        this.$('control-scrubber:not(:active)').val(value * this.CONTROL_SCRUBBER_GRANULARITY / this.video.duration);
+        this.$('control-scrubber:not(:active)').val((value-this.offset) * this.CONTROL_SCRUBBER_GRANULARITY / this.video.duration);
         if (timeRange.violatesStartTime || timeRange.violatesEndTime) {
             this.fixVideoTime(timeRange.closestTimeinRange);
         }

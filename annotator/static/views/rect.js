@@ -44,7 +44,6 @@ class Rect {
         // Front/back set before element is attached to paper
         this.preAttachedZ = null;
 
-
         // Bounds of the rect
         this.bounds = undefined;
 
@@ -52,7 +51,7 @@ class Rect {
         this.classBaseName = classBaseName.add('rect');
 
         // State of class name extensions:
-        // If a key has value true, then we add the class player-rect-KEY
+        // If a key has fvalue true, then we add the class player-rect-KEY
         // If a key has value false, then we add the class player-rect-noKEY
         this.classNameExtBooleans = {};
 
@@ -68,8 +67,15 @@ class Rect {
         // Fill color
         this.fill = fill;
 
+        this.title = "";
+
         // Raphel rect element
         this.$el = null;
+        
+        this.locked = false;
+        this.$lock_el = null;
+        this.lock_el = null;
+        this.lock_offset = 0;
 
         // jQuer rect element
         this.el = null;
@@ -109,11 +115,29 @@ class Rect {
         // Actually do the attaching
         this.$el = this.$paper.rect(0, 0, this.$paper.width, this.$paper.height);
         this.el = this.$el.node;
+        $(this.el).attr("id", this.$el.id);
+        
+        var {scale} = this.getPlayerMetrics();
+        
+        this.$lock_el = this.$paper.text(this.$paper.width/2, this.$paper.height/2, '\uf023')
+        this.lock_el = this.$lock_el.node;
+        $(this.lock_el).removeAttr('style');
+        this.$lock_el.attr({
+                fill: "#66ff33",
+                "font-size": 25/scale,
+            });
+        this.lock_offset = 15/scale;
+        $(this.lock_el).addClass('fas');
+        $(this.lock_el).css({visibility: "hidden"});
+
+        //container
         this.applyPreAttachedAppearance();
         this.setHandlers();
 
         // Trigger event
         $(this).triggerHandler('attach', this.$paper);
+
+
     }
 
     detach() {
@@ -137,6 +161,14 @@ class Rect {
 
     appear({real, selected, singlekeyframe}) {
         this.setClassNameExts({real, selected, singlekeyframe});
+        
+        if (real) {
+            if (this.locked) {
+                $(this.lock_el).css({visibility: "visible"});
+            }
+        } else {
+            $(this.lock_el).css({visibility: "hidden"});
+        }
 
         if (selected === true) {
             this.toFront();
@@ -172,6 +204,7 @@ class Rect {
     focus() {
         this.$el.toFront();
         $(this).triggerHandler('focus');
+
     }
 
 
@@ -191,6 +224,20 @@ class Rect {
         this._fill = fill;
         this.attr({
             'fill': this._fill,
+        });
+    }
+
+
+    set title(title) {
+        this._title = title;
+        if (this.el == null){
+        }
+        else{
+            this.el.setAttribute("title",this._title)
+        }
+
+        this.attr({
+            "title": this._title,
         });
     }
 
@@ -226,6 +273,7 @@ class Rect {
     }
 
     set bounds(bounds) {
+
         if (bounds === undefined) {
             this._bounds = bounds;
             return;
@@ -240,6 +288,8 @@ class Rect {
         }
         else {
             this.$el.attr(Bounds.toAttrs(bounds));
+            this.$lock_el.attr({x: bounds.xMin + this.lock_offset, 
+                                y: bounds.yMin + this.lock_offset});
         }
 
         this._bounds = bounds;
@@ -270,6 +320,7 @@ class Rect {
     }
 
     move(dx, dy) {
+
         if (this.boundsBeforeDrag == null) {
             throw new Error("Rect.resize: no this.boundsBeforeDrag");
         }
@@ -277,6 +328,7 @@ class Rect {
 
         // Trigger event
         $(this).triggerHandler('incremental-move');
+
     }
 
 
@@ -299,10 +351,20 @@ class Rect {
             this.$el.toBack();
         }
     }
-
+    
+    lock() {
+        this.locked = true;
+        $(this.lock_el).css({visibility: "visible"});
+        this.unsetHandlers();
+    }
+    
+    unlock() {
+        this.locked = false;
+        $(this.lock_el).css({visibility: "hidden"});
+        this.setHandlers();
+    }
 
     // Event handlers
-
     setHandlers() {
         // Handlers
         this.$el.mousedown(this.onMousedown.bind(this));
@@ -310,14 +372,44 @@ class Rect {
         this.$el.mousemove(this.onMouseover.bind(this));
         this.$el.dblclick(this.onDoubleclick.bind(this));
     }
-
+    
+    unsetHandlers() {
+        this.$el.unmousedown(this.onMousedown.bind(this));
+        this.$el.undrag(this.onDragMove.bind(this), this.onDragStart.bind(this), this.onDragEnd.bind(this));
+        this.$el.unmousemove(this.onMouseover.bind(this));
+        this.$el.undblclick(this.onDoubleclick.bind(this));
+    }
 
     // Event handler: Click
 
-    onMousedown() {
+    onMousedown(e) {
         // Trigger event
         this.focus();
+        if(e.which == 3)
+        {
+          var id = '#'+ this.el.id;
+          var _this = $(this);
+          $.contextMenu({
+            selector: id,
+            callback: function(key, options) {
+                switch(key){
+                    case 'LockUnLock':
+                        _this.triggerHandler('contextMenu-lock-unlock-object');
+                        break;
+                    case 'delete':
+                        _this.triggerHandler('contextMenu-delete-single-keyframe');
+                        break;
+                }
+            },
+            items: {
+                "LockUnLock": {name: "Lock | UnLock ( ' L ' )", icon: "fas fa-lock"},
+                "delete": {name: "Delete this annotation ( ' D ' ) ", icon: "fas fa-trash-alt"},
+                "quit": {name: "Quit", icon: "fas fa-times"}
+            }
+        });
+      }
     }
+
 
 
     // Event handler: Drag
@@ -388,6 +480,9 @@ class Rect {
 
         // Trigger event
         $(this).triggerHandler('drag-end');
+
+        //once some one drags and reposition the bounding box, he is happy with it.
+        this.focus();
     }
 
     onDoubleclick() {
@@ -412,7 +507,7 @@ class Rect {
         // Don't change cursor during a drag operation
         if (this.isBeingDragged()) return;
 
-        // X,Y Coordinates relative to shape's orgin
+        // X,Y Coordinates relative to shape's origin
         var mouse = this.getCanvasRelativePoint(absMouseX, absMouseY);
         var relative = {
             xMin: mouse.x - this.bounds.xMin,
@@ -513,9 +608,11 @@ class CreationRect extends Rect {
 
     onMousedown() {
         this.focus();
+
     }
 
     onDragStart(absMouseX, absMouseY) {
+        //when you draw the bbox
         var mouse = this.getCanvasRelativePoint(absMouseX, absMouseY);
         this.bounds = {
             xMin: mouse.x,
@@ -548,6 +645,7 @@ class CreationRect extends Rect {
 
     onMouseover() {
         this.dragIntent = 'create';
+
     }
 
 }

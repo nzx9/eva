@@ -1,63 +1,131 @@
+import os
+import random
+import colorsys
+import json
+import logging
 from django.db import models
 from django.contrib.staticfiles import finders
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+
+logger = logging.getLogger(__name__)
+
+def random_color():
+    hue, sat, light = random.random(), 0.5 + random.random() / \
+        2.0, 0.4 + random.random() / 5.0
+    r, g, b = [int(256 * i) for i in colorsys.hls_to_rgb(hue, light, sat)]
+    hex_code = '%02x%02x%02x' % (r, g, b)
+    return hex_code
 
 
 class Label(models.Model):
     """The classes available for workers to choose from for each object."""
-    id = models.AutoField(primary_key=True)
     name = models.CharField(blank=True, max_length=100, unique=True,
-        help_text="Name of class label option.")
-    color = models.CharField(blank=True, max_length=6,
-        help_text="6 digit hex.")
+                            help_text="Name of class label option.")
+    color = models.CharField(max_length=6, default=random_color)
 
     def __str__(self):
         return self.name
 
 
-class Video(models.Model):
-    annotation = models.TextField(blank=True,
-        help_text="A JSON blob containing all user annotation sent from client.")
-    source = models.CharField(max_length=1048, blank=True,
-        help_text=("Name of video source or type, for easier grouping/searching of videos."
-            "This field is not used by BeaverDam and only facilitates querying on videos by type."))
-    filename = models.CharField(max_length=100, blank=True,
-        help_text=("Name of the video file."
-            "The video should be publically accessible by at <host><filename>."))
-    image_list = models.TextField(blank=True,
-        help_text=("List of filenames of images to be used as video frames, in JSON format."
-            "When present, image list is assumed and <filename> is ignored."))
-    host = models.CharField(max_length=1048, blank=True,
-        help_text="Path to prepend to filenames to form the url for this video or the images in `image_list`.")
-    verified = models.BooleanField(default=False, help_text="Verified as correct by expert.")
-    rejected = models.BooleanField(default=False, help_text="Rejected by expert.")
-    labels = models.ManyToManyField(Label, blank=True)
+class Project(models.Model):
+    """The classes available for workers to choose from for each object."""
+    name = models.CharField(blank=True, max_length=100, unique=True,
+                            help_text="Name of class label option.")
+    labels = models.ManyToManyField(Label, blank=True, through="LabelMapping")
+    desc = models.CharField(blank=True, max_length=100, unique=False,
+                            help_text="Name of class label option.")
 
-    @classmethod
-    def from_list(cls, path_to_list, *, source, host, filename_prefix=''):
-        created = []
-        for line in open(path_to_list, 'r'):
-            if line:
-                video = cls(source=source, filename=filename_prefix + line.strip(), host=host)
-                video.save()
-                created.append(video)
-        return created
+    def __str__(self):
+        return self.name
+
+
+class LabelMapping(models.Model):
+    label = models.ForeignKey(Label, on_delete=models.CASCADE)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    num = models.IntegerField()
+
+
+class Video(models.Model):
+    annotation = models.TextField(
+        blank=True,
+        help_text="A JSON blob containing all user annotation sent from client."
+    )
+    name = models.CharField(max_length=255, unique=True,
+                            help_text="Name of the sequence.")
+    date = models.DateTimeField(max_length=100, auto_now=True,
+                                help_text="Date of when the video was added")
+    label = models.ManyToManyField(Label, blank=True)
+    cache_file = models.CharField(blank=True, max_length=200)
+    cache_task_id = models.CharField(blank=True, max_length=36)
+    extract_task_id = models.CharField(blank=True, max_length=36)
+    project = models.ForeignKey(
+        Project, on_delete=models.SET_NULL, blank=True, null=True)
+    zipfile = models.FileField(upload_to='zipfiles', blank=True)
+    width = models.IntegerField(default=0)
+    height = models.IntegerField(default=0)
+    channels = models.IntegerField(default=0)
+
+    @property
+    def image_list(self):
+        files = self.uploadfile_set.filter(file_type=UploadFile.IMAGE)
+        urls = sorted([x.file.url for x in files])
+        return urls
 
     def __str__(self):
         return '/video/{}'.format(self.id)
-
+    
     @property
-    def url(self):
-        if self.image_list:
-            return 'Image List'
-        elif finders.find('videos/{}.mp4'.format(self.id)):
-            return '/static/videos/{}.mp4'.format(self.id)
-        elif self.filename and self.host:
-            return self.host + self.filename
-        else:
-            raise Exception('Video {0} does not have a filename, host or image_list. Possible fixes: \n1) Place {0}.mp4 into static/videos to serve locally. \n2) Update the filename & host fields of the Video with id={0}'.format(self.id))
+    def images(self):
+        files = self.uploadfile_set.filter(file_type=UploadFile.IMAGE)
+        files = sorted([x.file.name for x in files])
+        return files
+        
+    @property
+    def video(self):
+        files = self.uploadfile_set.filter(file_type=UploadFile.VIDEO)
+        return files
 
-    def count_keyframes(self, at_time=None):
-        if at_time is None:
-            return self.annotation.count('"frame"')
-        else:
-            return self.annotation.count('"frame": {}'.format(at_time))
+def unique_path(instance, filename):
+    return os.path.join(str(instance.video.id), filename)
+
+class UploadFile(models.Model):
+    IMAGE = 'image'
+    VIDEO = 'video'
+    FILE_TYPES = ((IMAGE, 'Image'),
+                  (VIDEO, 'Video'))
+    file = models.FileField(upload_to=unique_path)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    video = models.ForeignKey('Video', on_delete=models.CASCADE, null=True)
+    file_type = models.CharField(
+        max_length=5, choices=FILE_TYPES, default=IMAGE)
+
+@receiver(post_delete, sender=UploadFile)
+def image_delete_handler(sender, instance, **kwargs):
+    if instance.file:
+        logger.debug('Deleting {}'.format(instance.file.path))
+        try:
+            os.remove(instance.file.path)
+        except FileNotFoundError:
+            pass
+        # remove the directory if this is the last file to delete
+        try:
+            os.rmdir(os.path.dirname(instance.file.path))
+        except OSError:
+            pass
+
+# delete the image list, if the video object ie deleted from db
+@receiver(post_delete, sender=Video)
+def image_post_delete_handler(sender, instance, **kwargs):
+    if instance.cache_file:
+        logger.debug('Deleting {}'.format(instance.cache_file))
+        try:
+            os.remove(instance.cache_file)
+        except FileNotFoundError:
+            pass
+    if instance.zipfile:
+        logger.debug('Deleting {}'.format(instance.zipfile.path))
+        try:
+            os.remove(instance.zipfile.path)
+        except FileNotFoundError:
+            pass

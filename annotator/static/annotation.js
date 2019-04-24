@@ -1,30 +1,42 @@
 "use strict";
 
 
+var ID = function () {
+  // Math.random should be unique because of its seeding algorithm.
+  // Convert it to base 36 (numbers + letters), and grab the first 9 characters
+  // after the decimal.
+  return '_' + Math.random().toString(36).substr(2, 9);
+};
+
 class Annotation {
     // Constants. ES6 doesn't support class constants yet, so we'll declare
     // them this way for now:
 
-    // Are we at a keyframe or in betwen keyframes? If we're less than
+    // Are we at a keyframe or in between keyframes? If we're less than
     // SAME_FRAME_THRESHOLD away from the closest keyframe, then we're at that
     // keyframe.
     get SAME_FRAME_THRESHOLD() {
         return 0.01 /* seconds */;
     }
 
-
-    constructor({fill, id, keyframes, type}) {
+    constructor({fill, keyframes, type}) {
         // Fill of annotation
         this.fill = fill;
 
         // ID of annotation
-        this.id = id;
+        this.id = ID();
 
         // Keyframes of annotation
         this.keyframes = keyframes;
 
+        //lock
+        this.lockObject = false;
+
         // Type of annotation
         this.type = type;
+        
+        // Annotation modified
+        this.modified = false;
 
         // Prevent adding new properties
         Misc.preventExtensions(this, Annotation);
@@ -32,13 +44,12 @@ class Annotation {
 
     // The hacky but only way to make a Annotation right now.
     static newFromCreationRect() {
-        var type = document.querySelector('input[name = "object"]:checked').value;
+        var type = document.querySelector('#labels option:checked').value;
         var fill = Misc.getRandomColor(type);
         return new Annotation({
             keyframes: [],
             fill: fill,
-            id: fill,
-            type: type,
+            type: type
         });
     }
 
@@ -50,6 +61,7 @@ class Annotation {
      * - The bounds for the annotation at this time
      */
     getFrameAtTime(time, usePreciseFrameMatching) {
+
         if (!this.keyframes.length) {
             return {
                 time: time,
@@ -57,10 +69,9 @@ class Annotation {
                 prevIndex: null,
                 nextIndex: null,
                 closestIndex: null,
-                continueInterpolation: false,
+                continueInterpolation: false
             };
         }
-
 
         var prevIndex = null;
         var nextIndex = null;
@@ -93,6 +104,7 @@ class Annotation {
             let next = this.keyframes[nextIndex];
             let frac = (time - prev.time) / (next.time - prev.time);
             closestIndex = frac <= 0.5 ? prevIndex : nextIndex;
+
             bounds = Bounds.interpolate(prev.bounds, next.bounds, frac);
         }
 
@@ -103,23 +115,35 @@ class Annotation {
         // otherwise we can do a boolean match (ie image sequence)
         else if (usePreciseFrameMatching && closest.time != time)
             closestIndex = null;
-
         return {
             time: time,
             bounds: bounds,
             prevIndex: prevIndex,
             nextIndex: nextIndex,
             closestIndex: closestIndex,
-            continueInterpolation: prevIndex != null ? this.keyframes[prevIndex].continueInterpolation : true,
+            continueInterpolation: prevIndex != null ? this.keyframes[prevIndex].continueInterpolation : true
         };
+    }
+
+    changeAnnotationLabel(newType) {
+        this.type = newType; 
+
+        // Trigger event
+        $(this).triggerHandler('change');
     }
 
     /* Insert or update keyframe at time. */
     updateKeyframe(frame, usePreciseFrameMatching)  {
-        var {prevIndex, nextIndex, closestIndex} = this.getFrameAtTime(frame.time);
+         var {prevIndex, nextIndex, closestIndex, bounds} = this.getFrameAtTime(frame.time);
 
-        if (frame.continueInterpolation === undefined)
-            frame.continueInterpolation = true;
+         // we don't want interpolation with tracker being integrated
+        frame.continueInterpolation = false;
+        
+        // mark annotation as modified, tracker should run
+        this.modified = true;
+
+         //  if (frame.continueInterpolation === undefined)
+        //            frame.continueInterpolation = true;
 
         // Update the closestIndex-th frame
         if (closestIndex != null) {
@@ -134,7 +158,6 @@ class Annotation {
             if (prevIndex == null) {
                 this.keyframes.unshift(frame);
             }
-
             // The "else" case handles this case but explicitly writing it out
             // anyway for consistency and symmertry.
             else if (nextIndex == null) {
@@ -162,13 +185,26 @@ class Annotation {
             var newFrame = {
                                 time: justBeforeTime, 
                                 bounds: bounds,
-                                continueInterpolation: false
-                            }
+                                continueInterpolation: false,
+                           }
             this.updateKeyframe(newFrame, usePreciseFrameMatching);
         }
         else
             this.keyframes.splice(closestIndex, 1);
 
+        // Trigger event
+        $(this).triggerHandler('change');
+
+        return true;
+    }
+    
+    deleteKeyframeAtTimeAndFuture(time, usePreciseFrameMatching) {
+        var {closestIndex, nextIndex, bounds} = this.getFrameAtTime(time);
+
+        if (closestIndex == null && nextIndex != null) return false;
+        
+        this.keyframes.splice(closestIndex, this.keyframes.length - closestIndex);
+        
         // Trigger event
         $(this).triggerHandler('change');
 
