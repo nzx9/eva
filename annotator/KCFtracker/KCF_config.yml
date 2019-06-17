@@ -1,0 +1,18 @@
+detect_thresh: 0.0
+sigma: 0.2
+lambdar: 0.0001
+interp_factor: 0.075
+output_sigma_factor: 0.125
+resize: 0
+max_patch_size: 6400
+split_coeff: 1
+wrap_kernel: 0
+desc_npca: 1
+desc_pca: 2
+compress_feature: 1
+compressed_size: 2
+pca_learning_rate: 0.15
+scale_step_multiscale: 1.05
+num_sector: 9
+flt_epsilon: 0.0000001
+#1e-07

@@ -18,10 +18,11 @@ from .models import Video, UploadFile, LabelMapping
 from celery import shared_task
 from django.conf import settings
 from .utils import *
+from .KCFtracker.kcftracker import *
 
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
-
+tracker = KCFTracker(True, True, True)
 
 class TrackerError(Exception):
     pass
@@ -34,29 +35,37 @@ class VideoError(Exception):
 @shared_task
 def tracker_task(video_id, frame_no, bbox):
     video = Video.objects.get(id=video_id)
-
-    tracker = cv2.TrackerKCF_create()
+    logger.info("this does not work!")
+    #tracker = KCFTracker(True, True, True)
+    #tracker = cv2.TrackerKCF_create()
 
     # Changes settings of the tracker
-    fs_read = cv2.FileStorage(settings.TRACKER_SETTINGS, cv2.FILE_STORAGE_READ)
-    tracker.read(fs_read.getNode(''))
-    fs_read.release()
+    #fs_read = cv2.FileStorage(settings.TRACKER_SETTINGS, cv2.FILE_STORAGE_READ)
+    #tracker.read(fs_read.getNode(''))
+    #fs_read.release()
 
     hdf5_file = h5py.File(video.cache_file, 'r')
 
     global_scale = hdf5_file['scale'][0]
 
-    scaling = settings.TRACKER_SCALING
+    #scaling = settings.TRACKER_SCALING
+    scaling = 1
     logger.info('Scaling is {}'.format(scaling))
-
+    logger.info('Bounding box is: {}'.format(bbox))
     bbox = [c*global_scale for c in bbox]  # The input image has been scaled
-    bbox = scale_box(bbox, scaling)
-    ok = tracker.init(hdf5_file['img'][frame_no, ...], tuple(bbox))
+    #bbox = scale_box(bbox, scaling)
+    #ok = tracker.init(hdf5_file['img'][frame_no, ...], tuple(bbox))
+    #temporary solution
+    ok  = True
     if not ok:
         raise TrackerError('unable to initiate tracker')
-
+    bbox = [round(c) for c in bbox]
     coordinates = dict()
     coordinates[frame_no] = [c//global_scale for c in bbox]
+
+    frame = hdf5_file['img'][frame_no, ...]
+    tracker.init(bbox, frame)
+    logger.info('Bounding box is now: {}'.format(bbox))
 
     low = frame_no + 1
     last_frame = (frame_no//settings.TRACKER_SIZE + 1)*settings.TRACKER_SIZE
@@ -65,9 +74,12 @@ def tracker_task(video_id, frame_no, bbox):
 
     for i in range(low, high):
         frame = hdf5_file['img'][i, ...]
+        #logger.info(frame)
         ok, bbox = tracker.update(frame)
+        logger.info("result incoming")
+        #logger.info(ok)
+        logger.info(bbox)
         bbox = list(bbox)
-
         if ok:
             # Tracking success
             bbox = scale_box(bbox, 1/scaling)

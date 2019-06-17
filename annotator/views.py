@@ -330,8 +330,11 @@ def tracker(request, video_id):
 
         time = int(request.POST.get('t', ''))
         bbox = (x, y, w, h)
-
+        print(video_id)
+        print(time)
+        print(bbox)
         task = tracker_task.delay(video_id, time, bbox)
+        print(task)
         resp['task_id'] = task.task_id
     except ValueError:
         resp['status'] = 'error'
