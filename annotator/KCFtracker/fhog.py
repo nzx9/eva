@@ -36,7 +36,6 @@ def getFeatureMaps(image, k, mapp):
 	mapp['map'] = np.zeros(mapp['sizeX']*mapp['sizeY']*mapp['numFeatures'], np.float32)
 	dx = cv2.filter2D(np.float32(image), -1, kernel)   # np.float32(...) is necessary #Detecting edges in x-direction
 	dy = cv2.filter2D(np.float32(image), -1, kernel.T) # detecting edges in y-direction
-	# do not know what NUM_SECTOR does, the amount of bins?
 	arg_vector = np.arange(NUM_SECTOR+1).astype(np.float32) * np.pi / NUM_SECTOR
 	boundary_x = np.cos(arg_vector)
 	boundary_y = np.sin(arg_vector)

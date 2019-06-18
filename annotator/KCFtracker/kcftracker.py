@@ -117,32 +117,32 @@ def subwindow(img, window, borderType=cv2.BORDER_CONSTANT):
 class KCFTracker:
 	def __init__(self, hog=False, fixed_window=False, multiscale=False):
 		config = load_config('annotator/KCFtracker/KCF_config.yml')
-		self.lambdar = config['lambdar']   # regularization
-		self.padding = 4.5  # extra area surrounding the target
-		self.output_sigma_factor = config['output_sigma_factor']   # bandwidth of gaussian target
-		if(hog):  # HOG feature
+		self.lambdar = config['lambdar']  # regularization
+		self.padding = config['padding']  # extra area surrounding the target
+		self.output_sigma_factor = config['output_sigma_factor']  # bandwidth of gaussian target
+		if (hog):  # HOG feature
 			# VOT
-			self.interp_factor = config['interp_factor']   # linear interpolation factor for adaptation
-			self.sigma = config['sigma']  # gaussian kernel bandwidth
+			self.interp_factor = config['interp_factor_hog']  # linear interpolation factor for adaptation
+			self.sigma = config['sigma_hog']  # gaussian kernel bandwidth
 			# TPAMI   #interp_factor = 0.02   #sigma = 0.5
-			self.cell_size = 4   # HOG cell size
+			self.cell_size = config['cell_size_hog']  # HOG cell size
 			self._hogfeatures = True
 		else:  # raw gray-scale image # aka CSK tracker
-			self.interp_factor = config['interp_factor']
-			self.sigma = config['sigma']
-			self.cell_size = 1
+			self.interp_factor = config['interp_factor_grey_scale']
+			self.sigma = config['sigma_grey_scale']
+			self.cell_size = config['cell_size_grey_scale']
 			self._hogfeatures = False
 
-		if(multiscale):
-			self.template_size = 96   # template size
-			self.scale_step = config['scale_step_multiscale']   # scale step for multi-scale estimation
-			self.scale_weight = 0.96   # to downweight detection scores of other scales for added stability
-		elif(fixed_window):
-			self.template_size = 96
-			self.scale_step = 1
+		if (multiscale):
+			self.template_size = config['template_size_multiscale']  # template size
+			self.scale_step = config['scale_step_multiscale'] #1.05  # scale step for multi-scale estimation
+			self.scale_weight = config['scale_weight_multiscale']#0.96  # to downweight detection scores of other scales for added stability
+		elif (fixed_window):
+			self.template_size = config['template_size_fixed_window'] #96
+			self.scale_step = config['scale_step_fixed_window'] #1
 		else:
-			self.template_size = 1
-			self.scale_step = 1
+			self.template_size = config['template_size_else'] #1
+			self.scale_step = config['scale_step_else'] #1
 
 		self._tmpl_sz = [0, 0]  # cv::Size, [width,height]  #[int,int]
 		self._roi = [0., 0., 0., 0.]# cv::Rect2f, [x,y,width,height]  #[float,float,float,float]
@@ -338,8 +338,8 @@ class KCFTracker:
 				self._roi[2] *= self.scale_step
 				self._roi[3] *= self.scale_step
 
-		print(loc)
-		print(peak_value)
+		#print(loc)
+		#print(peak_value)
 		self._roi[0] = cx - self._roi[2]/2.0 + loc[0]*self.cell_size*self._scale
 		self._roi[1] = cy - self._roi[3]/2.0 + loc[1]*self.cell_size*self._scale
 		if(self._roi[0] >= image.shape[1]-1):  self._roi[0] = image.shape[1] - 1
