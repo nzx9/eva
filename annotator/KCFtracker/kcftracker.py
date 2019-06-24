@@ -4,7 +4,6 @@ from time import time
 from datetime import datetime
 
 from .fhog import *
-import yaml
 from .yamlConfigHandling import load_config
 
 # ffttools
@@ -38,8 +37,6 @@ def rearrange(img):
 	assert(img.ndim==2)
 	img_ = np.zeros(img.shape, img.dtype)
 	xh, yh = int(img.shape[1]/2), int(img.shape[0]/2)
-	## Does this cause the shift??
-	#yes, but now it shifts both up and down so should balance itself but it is a bit erratic on border cases
 	if(img.shape[1]%2 != 0):
 		if(img.shape[1]/2 < xh + 0.5):
 			i = 1
@@ -144,14 +141,14 @@ class KCFTracker:
 			self.template_size = config['template_size_else'] #1
 			self.scale_step = config['scale_step_else'] #1
 
-		self._tmpl_sz = [0, 0]  # cv::Size, [width,height]  #[int,int]
+		self._template_size = [0, 0]  # cv::Size, [width,height]  #[int,int]
 		self._roi = [0., 0., 0., 0.]# cv::Rect2f, [x,y,width,height]  #[float,float,float,float]
 		self.roi = [0., 0., 0., 0.]
 		self.size_patch = [0, 0, 0]  #[int,int,int]
 		self._scale = 1.   # float
 		self._alphaf = None  # numpy.ndarray    (size_patch[0], size_patch[1], 2)
 		self._prob = None  # numpy.ndarray    (size_patch[0], size_patch[1], 2)
-		self._tmpl = None  # numpy.ndarray    raw: (size_patch[0], size_patch[1])   hog: (size_patch[2], size_patch[0]*size_patch[1])
+		self._template = None  # numpy.ndarray    raw: (size_patch[0], size_patch[1])   hog: (size_patch[2], size_patch[0]*size_patch[1])
 		self.hann = None  # numpy.ndarray    raw: (size_patch[0], size_patch[1])   hog: (size_patch[2], size_patch[0]*size_patch[1])
 
 		self.tt = 0.04
@@ -226,57 +223,57 @@ class KCFTracker:
 		cy = self._roi[1] + self._roi[3]/2  #float
 
 		if(inithann):
-			padded_w = self._roi[2] * self.padding
-			padded_h = self._roi[3] * self.padding
+			padded_width = self._roi[2] * self.padding
+			padded_height = self._roi[3] * self.padding
 
 			if(self.template_size > 1):
-				if(padded_w >= padded_h):
-					self._scale = padded_w / float(self.template_size)
+				if(padded_width >= padded_height):
+					self._scale = padded_width / float(self.template_size)
 				else:
-					self._scale = padded_h / float(self.template_size)
-				self._tmpl_sz[0] = int(padded_w / self._scale)
-				self._tmpl_sz[1] = int(padded_h / self._scale)
+					self._scale = padded_height / float(self.template_size)
+				self._template_size[0] = int(padded_width / self._scale)
+				self._template_size[1] = int(padded_height / self._scale)
 			else:
-				self._tmpl_sz[0] = int(padded_w)
-				self._tmpl_sz[1] = int(padded_h)
+				self._template_size[0] = int(padded_width)
+				self._template_size[1] = int(padded_height)
 				self._scale = 1.
 
 			if(self._hogfeatures):
-				self._tmpl_sz[0] = int(self._tmpl_sz[0] / (2*self.cell_size) * 2*self.cell_size + 2*self.cell_size)
-				self._tmpl_sz[1] = int(self._tmpl_sz[1] / (2*self.cell_size) * 2*self.cell_size + 2*self.cell_size)
+				self._template_size[0] = int(self._template_size[0] / (2*self.cell_size) * 2*self.cell_size + 2*self.cell_size)
+				self._template_size[1] = int(self._template_size[1] / (2*self.cell_size) * 2*self.cell_size + 2*self.cell_size)
 			else:
-				self._tmpl_sz[0] = int(self._tmpl_sz[0] / 2 * 2)
-				self._tmpl_sz[1] = int(self._tmpl_sz[1] / 2 * 2)
+				self._template_size[0] = int(self._template_size[0] / 2 * 2)
+				self._template_size[1] = int(self._template_size[1] / 2 * 2)
 
-		extracted_roi[2] = int(scale_adjust * self._scale * self._tmpl_sz[0])
-		extracted_roi[3] = int(scale_adjust * self._scale * self._tmpl_sz[1])
+		extracted_roi[2] = int(scale_adjust * self._scale * self._template_size[0])
+		extracted_roi[3] = int(scale_adjust * self._scale * self._template_size[1])
 		extracted_roi[0] = int(cx - extracted_roi[2]/2)
 		extracted_roi[1] = int(cy - extracted_roi[3]/2)
 
 		z = subwindow(image, extracted_roi, cv2.BORDER_REPLICATE)
-		if(z.shape[1]!=self._tmpl_sz[0] or z.shape[0]!=self._tmpl_sz[1]):
-			z = cv2.resize(z, tuple(self._tmpl_sz))
+		if(z.shape[1]!=self._template_size[0] or z.shape[0]!=self._template_size[1]):
+			z = cv2.resize(z, tuple(self._template_size))
 		if(self._hogfeatures):
-			mapp = {'sizeX':0, 'sizeY':0, 'numFeatures':0, 'map':0}
-			mapp = getFeatureMaps(z, self.cell_size, mapp)
-			mapp = normalizeAndTruncate(mapp, 0.2)
-			mapp = PCAFeatureMaps(mapp)
+			featureMap = {'sizeX':0, 'sizeY':0, 'numFeatures':0, 'map':0}
+			featureMap = getFeatureMaps(z, self.cell_size, featureMap) #Create the hog-feature map
+			featureMap = normalizeAndTruncate(featureMap, 0.2) #creates normalized features and truncates the map
+			featureMap = PCAFeatureMaps(featureMap) #Creates new features that should better describe it
 			##I have changed to float, originally int, might create computational errors
-			self.size_patch = list(map(float, [mapp['sizeY'], mapp['sizeX'], mapp['numFeatures']]))
-			FeaturesMap = mapp['map'].reshape((int(self.size_patch[0]*self.size_patch[1]), int(self.size_patch[2]))).T   # (size_patch[2], size_patch[0]*size_patch[1])
+			self.size_patch = list(map(float, [featureMap['sizeY'], featureMap['sizeX'], featureMap['numFeatures']]))
+			finalFeaturesMap = featureMap['map'].reshape((int(self.size_patch[0]*self.size_patch[1]), int(self.size_patch[2]))).T   # (size_patch[2], size_patch[0]*size_patch[1])
 		else:
 			if(z.ndim==3 and z.shape[2]==3):
-				FeaturesMap = cv2.cvtColor(z, cv2.COLOR_BGR2GRAY)   # z:(size_patch[0], size_patch[1], 3)  FeaturesMap:(size_patch[0], size_patch[1])   #np.int8  #0~255
+				finalFeaturesMap = cv2.cvtColor(z, cv2.COLOR_BGR2GRAY)   # z:(size_patch[0], size_patch[1], 3)  FeaturesMap:(size_patch[0], size_patch[1])   #np.int8  #0~255
 			elif(z.ndim==2):
-				FeaturesMap = z   #(size_patch[0], size_patch[1]) #np.int8  #0~255
-			FeaturesMap = FeaturesMap.astype(np.float32) / 255.0 - 0.5
+				finalFeaturesMap = z   #(size_patch[0], size_patch[1]) #np.int8  #0~255
+			finalFeaturesMap = finalFeaturesMap.astype(np.float32) / 255.0 - 0.5
 			self.size_patch = [z.shape[0], z.shape[1], 1]
 
 		if(inithann):
 			self.createHanningMats()  # createHanningMats need size_patch
 
-		FeaturesMap = self.hann * FeaturesMap
-		return FeaturesMap
+		finalFeaturesMap = self.hann * finalFeaturesMap
+		return finalFeaturesMap
 
 	def detect(self, z, x):
 		k = self.gaussianCorrelation(x, z)
@@ -298,17 +295,17 @@ class KCFTracker:
 		k = self.gaussianCorrelation(x, x)
 		alphaf = complexDivision(self._prob, fftd(k)+self.lambdar)
 
-		self._tmpl = (1-train_interp_factor)*self._tmpl + train_interp_factor*x
+		self._template = (1-train_interp_factor)*self._template + train_interp_factor*x
 		self._alphaf = (1-train_interp_factor)*self._alphaf + train_interp_factor*alphaf
 
 
 	def init(self, roi, image):
 		self._roi = list(map(float, roi))
 		assert(roi[2]>0 and roi[3]>0)
-		self._tmpl = self.getFeatures(image, 1)
+		self._template = self.getFeatures(image, 1)
 		self._prob = self.createGaussianPeak(self.size_patch[0], self.size_patch[1])
 		self._alphaf = np.zeros((int(self.size_patch[0]), int(self.size_patch[1]), 2), np.float32)
-		self.train(self._tmpl, 1.0)
+		self.train(self._template, 1.0)
 
 	def update(self, image):
 		if(self._roi[0]+self._roi[2] <= 0):  self._roi[0] = -self._roi[2] + 1
@@ -318,12 +315,12 @@ class KCFTracker:
 
 		cx = self._roi[0] + self._roi[2]/2.
 		cy = self._roi[1] + self._roi[3]/2.
-		loc, peak_value = self.detect(self._tmpl, self.getFeatures(image, 0, 1.0))
+		loc, peak_value = self.detect(self._template, self.getFeatures(image, 0, 1.0))
 		if(self.scale_step != 1):
 			# Test at a smaller _scale
-			new_loc1, new_peak_value1 = self.detect(self._tmpl, self.getFeatures(image, 0, 1.0/self.scale_step))
+			new_loc1, new_peak_value1 = self.detect(self._template, self.getFeatures(image, 0, 1.0/self.scale_step))
 			# Test at a bigger _scale
-			new_loc2, new_peak_value2 = self.detect(self._tmpl, self.getFeatures(image, 0, self.scale_step))
+			new_loc2, new_peak_value2 = self.detect(self._template, self.getFeatures(image, 0, self.scale_step))
 
 			if(self.scale_weight*new_peak_value1 > peak_value and new_peak_value1>new_peak_value2):
 				loc = new_loc1
@@ -338,8 +335,6 @@ class KCFTracker:
 				self._roi[2] *= self.scale_step
 				self._roi[3] *= self.scale_step
 
-		#print(loc)
-		#print(peak_value)
 		self._roi[0] = cx - self._roi[2]/2.0 + loc[0]*self.cell_size*self._scale
 		self._roi[1] = cy - self._roi[3]/2.0 + loc[1]*self.cell_size*self._scale
 		if(self._roi[0] >= image.shape[1]-1):  self._roi[0] = image.shape[1] - 1

@@ -1,18 +1,34 @@
-sigma_hog: 0.6
-sigma_grey_scale: 0.2
+#OVERALL SETTINGS
 lambdar: 0.0001
-padding: 4.5
+padding: 2 #Adds extra padding on the box to allow better detection of object, a value of 2 gives a 2 times larger box
+              # that it tries to track
 output_sigma_factor: 0.125
-template_size_multiscale: 96
-template_size_fixed_window: 96
-template_size_else: 1
-interp_factor_hog: 0.0000125
-interp_factor_grey_scale: 0.075
+num_sector: 9 #I believe it is the number of bins the HOG(histogram of oriented gradients) will divide the orientations in
+hog: True #Decides whether you use hog-features or not
+
+
+#IF YOU USE HOG-FEATURES
+sigma_hog: 0.7
+interp_factor_hog: 0.0125
 cell_size_hog: 4
+
+#IF YOU DON'T USE HOG-FEATURES
+sigma_grey_scale: 0.2
+interp_factor_grey_scale: 0.075
 cell_size_grey_scale: 1
+
+#IF YOU USE MULTISCALE - SCALING THE SIZE OF THE BOX
+template_size_multiscale: 96
 scale_step_multiscale: 1.05
+scale_weight_multiscale: 0.98
+multiscale: True
+
+#IF YOU DECIDE TO USE A FIXED WINDOW BOX
+template_size_fixed_window: 96
 scale_step_fixed_window: 1
+fixed_window: False #If multiscale is False and fixed_window is True then it will be using fixed window
+
+#IF YOU DECIDE TO NOT USE FIXED WINDOW OR MULTISCALE
+template_size_else: 1
 scale_step_else: 1
-scale_weight_multiscale: 0.96
-num_sector: 9
-flt_epsilon: 0.0000001
+

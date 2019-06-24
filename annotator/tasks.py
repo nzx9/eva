@@ -21,10 +21,12 @@ from celery import shared_task
 from django.conf import settings
 from .utils import *
 from .KCFtracker.kcftracker import *
+from .KCFtracker.yamlConfigHandling import load_config
 
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
-tracker = KCFTracker(True, True, True)
+config = load_config(os.getcwd() + '\\annotator\\KCFtracker\\KCF_config.yml')
+tracker = KCFTracker(config['hog'], config['fixed_window'], config['multiscale'])
 class TrackerError(Exception):
     pass
 
@@ -36,64 +38,34 @@ class VideoError(Exception):
 @shared_task
 def tracker_task(video_id, frame_no, bbox):
     video = Video.objects.get(id=video_id)
-    #logger.info("ID is: {}".format(video_id))
-    logger.info('Bounding box is: {}'.format(bbox))
-    #tracker = KCFTracker(True, True, True)
-    #tracker = cv2.TrackerKCF_create()
 
     # Changes settings of the tracker
     fs_read = cv2.FileStorage(settings.TRACKER_SETTINGS, cv2.FILE_STORAGE_READ)
-    #tracker.read(fs_read.getNode(''))
     fs_read.release()
 
     hdf5_file = h5py.File(video.cache_file, 'r')
 
     global_scale = hdf5_file['scale'][0]
-    #tracker = KCFTracker(True, True, True)
-    #scaling = settings.TRACKER_SCALING
-    scaling = 1
-    logger.info('Scaling is {}'.format(scaling))
-    #if(frame_no == 0):
-     #     bbox = [6, 166, 42, 26]
-    logger.info('Bounding box is: {}'.format(bbox))
+    if(frame_no == 0):
+        bbox = [6,166,42,26]
     bbox = [c*global_scale for c in bbox]  # The input image has been scaled
-    #bbox = scale_box(bbox, scaling)
-    #ok = tracker.init(hdf5_file['img'][frame_no, ...], tuple(bbox))
-    #temporary solution
-    ok  = True
-    if not ok:
-        raise TrackerError('unable to initiate tracker')
-    #bboxCoordinates = [bbox[0], bbox[1], bbox[0] + bbox[2], bbox[1] + bbox[3]]
     coordinates = dict()
-    #coordinates[frame_no] = [c//global_scale for c in bboxCoordinates]
     coordinates[frame_no] = [c // global_scale for c in bbox]
-    #logger.info('Bbox is: {}'.format(bbox))
-    #logger.info('Coordinates are: {}'.format(coordinates))
     frame = hdf5_file['img'][frame_no, ...]
-    #bbox = [round(c) for c in bbox]
     tracker.init(bbox, frame)
-    #logger.info('Bounding box is now: {}'.format(bbox))
 
     low = frame_no + 1
     last_frame = (frame_no//settings.TRACKER_SIZE + 1)*settings.TRACKER_SIZE
     num_images = hdf5_file['img'].shape[0]
     high = min(last_frame + 1, num_images)
-    #logger.info('high is now: {}'.format(high))
     t0 = time()
     for i in range(low, high):
         frame = hdf5_file['img'][i, ...]
-        #logger.info('Max is: {}'.format(np.amax(frame)))
-        #logger.info('Min is: {}'.format(np.amin(frame)))
         ok, bbox = tracker.update(frame)
-        #logger.info("result incoming")
-        #logger.info(ok)
-        #logger.info(bbox)
         bbox = list(bbox)
         if ok:
             # Tracking success
-            #bbox = scale_box(bbox, 1/scaling)
             coordinates[i] = [c//global_scale for c in bbox]
-            #logger.info('final box is: {}'.format(bbox))
         else:
             # Tracking failure
             logger.error(
