@@ -25,7 +25,7 @@ from .KCFtracker.yamlConfigHandling import load_config
 
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
-config = load_config(os.getcwd() + '\\annotator\\KCFtracker\\KCF_config.yml')
+config = load_config(os.getcwd() + '/annotator/KCFtracker/KCF_config.yml')
 tracker = KCFTracker(config['hog'], config['fixed_window'], config['multiscale'])
 class TrackerError(Exception):
     pass
@@ -46,8 +46,6 @@ def tracker_task(video_id, frame_no, bbox):
     hdf5_file = h5py.File(video.cache_file, 'r')
 
     global_scale = hdf5_file['scale'][0]
-    if(frame_no == 0):
-        bbox = [6,166,42,26]
     bbox = [c*global_scale for c in bbox]  # The input image has been scaled
     coordinates = dict()
     coordinates[frame_no] = [c // global_scale for c in bbox]

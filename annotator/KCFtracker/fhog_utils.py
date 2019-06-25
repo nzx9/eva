@@ -5,7 +5,7 @@ import math
 import os
 from .yamlConfigHandling import load_config
 # constant
-config = load_config(os.getcwd() + '\\annotator\\KCFtracker\\KCF_config.yml')
+config = load_config(os.getcwd() + '/annotator/KCFtracker/KCF_config.yml')
 NUM_SECTOR = config['num_sector']
 FLT_EPSILON = 0.0000001 #To not have division by zero
 
