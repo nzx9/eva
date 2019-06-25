@@ -19,7 +19,6 @@ def getFeatureMaps(image, cellSize, featuresMap):
 	## Here we compute the edge convolution in x and y direction, with interval k in x and y direction. By using the interval
 	## k we limit the accuracy of the edge detection but it saves time. In our current usage of the function the k is the cell size
 	##
-	t01 = clock()
 	kernel = np.array([[-1.,  0., 1.]], np.float32)
 
 	height = image.shape[0]
@@ -47,14 +46,11 @@ def getFeatureMaps(image, cellSize, featuresMap):
 	### to calculate the bin-value(for the histogram), where r is the radians
 	r = np.zeros((height, width), np.float32) ## The radians
 	alpha = np.zeros((height, width, 2), np.int64) ## Will be the directions in which the maximum gradient was found
-	alphaLow = np.zeros((height, width), np.int64)  ## Will be the directions in which the maximum gradient was found
-	alphaHigh = np.zeros((height, width), np.int64)
-	alphaHighWeights = np.zeros((height, width), np.float32) ## These are used to interpolate between angle bins
-	alphaLowWeights = np.zeros((height, width), np.float32)
-	t0 = clock()
+	#alphaLow = np.zeros((height, width), np.int64)  ## Will be the directions in which the maximum gradient was found
+	#alphaHigh = np.zeros((height, width), np.int64)
+	#alphaHighWeights = np.zeros((height, width), np.float32) ## These are used to interpolate between angle bins
+	#alphaLowWeights = np.zeros((height, width), np.float32)
 	mapPointsToBins(dx, dy, boundary_x, boundary_y, r, alpha, height, width, numChannels) #with @jit
-	t1 = clock()
-	print('Time it took was for func1: {}'.format(t1 - t0))
 	### ~0.001s
 	nearestCell = np.ones(cellSize, np.int64)
 	nearestCell[0:math.floor(cellSize/2)] = -1
@@ -68,20 +64,14 @@ def getFeatureMaps(image, cellSize, featuresMap):
 
 	### Here we compute the actual HOG-features, by using the weights to sum up the values for each bin  for each cell.
 	temporaryFeaturesMap = np.zeros(cellsAmountXDirection*cellsAmountYDirection*amountOfOrientationBins, np.float32)
-	t0 = clock()
 	aggregateToHOGFeatureMap(temporaryFeaturesMap, r, alpha, nearestCell, cellWeights, cellSize, height, width, cellsAmountXDirection, cellsAmountYDirection, amountOfOrientationBins, rowSize)
-	t1 = clock()
-	print('Time it took was for func2: {}'.format(t1 - t0))
 	featuresMap['map'] = temporaryFeaturesMap
 	### ~0.001s
-	t11 = clock()
-	print('Time it took was for getFeatureMaps: {}'.format(t11 - t01))
 
 	return featuresMap
 
 
 def normalizeAndTruncate(featureMap, alpha):
-	t01 = clock()
 	cellsAmountXDirection = featureMap['sizeX']
 	cellsAmountYDirection = featureMap['sizeY']
 	numChannels = 3
@@ -98,10 +88,7 @@ def normalizeAndTruncate(featureMap, alpha):
 	
 	### 
 	newData = np.zeros(cellsAmountYDirection*cellsAmountXDirection*totalAmountOfFeaturesPerCell, np.float32)
-	t0 = clock()
-	func3(newData, partOfNorm, featureMap['map'], cellsAmountXDirection, cellsAmountYDirection, amountOfOrientationBinsPerChannel, amountOfOrientationBins, totalAmountOfFeaturesPerCell) #with @jit
-	t1 = clock()
-	print('Time it took was for func3: {}'.format(t1 - t0))
+	createNormalizedFeatures(newData, partOfNorm, featureMap['map'], cellsAmountXDirection, cellsAmountYDirection, amountOfOrientationBinsPerChannel, amountOfOrientationBins, totalAmountOfFeaturesPerCell) #with @jit
 	###
 
 	# truncation
@@ -111,14 +98,11 @@ def normalizeAndTruncate(featureMap, alpha):
 	featureMap['sizeX'] = cellsAmountXDirection
 	featureMap['sizeY'] = cellsAmountYDirection
 	featureMap['map'] = newData
-	t11 = clock()
-	print('Time it took was for normalizeAndTruncate: {}'.format(t11 - t01))
 
 	return featureMap
 
 
 def PCAFeatureMaps(featureMap):
-	t01 = clock()
 	cellsAmountXDirection = featureMap['sizeX']
 	cellsAmountYDirection = featureMap['sizeY']
 
@@ -132,15 +116,10 @@ def PCAFeatureMaps(featureMap):
 	ny = 1.0 / np.sqrt(normalizationFeatures)
 	### 
 	newData = np.zeros(cellsAmountXDirection*cellsAmountYDirection*newAmountOfFeatures, np.float32)
-	t0 = clock()
-	func4(newData, featureMap['map'], totalAmountOfFeaturesPerCell, cellsAmountXDirection, cellsAmountYDirection, newAmountOfFeatures, normalizationFeatures, amountOfBinsPerChannel, nx, ny) #with @jit
-	t1 = clock()
-	print('Time it took was for func4: {}'.format(t1 - t0))
+	hogPCA(newData, featureMap['map'], totalAmountOfFeaturesPerCell, cellsAmountXDirection, cellsAmountYDirection, newAmountOfFeatures, normalizationFeatures, amountOfBinsPerChannel, nx, ny) #with @jit
 	###
 
 	featureMap['numFeatures'] = newAmountOfFeatures
 	featureMap['map'] = newData
-	t11 = clock()
-	print('Time it took was for PCA: {}'.format(t11 - t01))
 
 	return featureMap

@@ -164,7 +164,7 @@ def aggregateToHOGFeatureMap(featureMap, r, alpha, nearestCell, cellWeights, cel
                             featureMap[(i + nearestCell[ii]) * rowSize + (j + nearestCell[jj]) * amountOfOrientationBins + alpha[cellSize * i + ii, j * cellSize + jj, 0]] += r[cellSize * i + ii, j * cellSize + jj] * cellWeights[ii, 1] * cellWeights[jj, 1]
                             featureMap[(i + nearestCell[ii]) * rowSize + (j + nearestCell[jj]) * amountOfOrientationBins + alpha[cellSize * i + ii, j * cellSize + jj, 1] + NUM_SECTOR] += r[cellSize * i + ii, j * cellSize + jj] * cellWeights[ii, 1] * cellWeights[jj, 1]
 
-@cc.export('func3', '(f4[:], f4[:], f4[:], i8, i8, i8, i8, i8)')
+@cc.export('createNormalizedFeatures', '(f4[:], f4[:], f4[:], i8, i8, i8, i8, i8)')
 def createNormalizedFeatures(newData, partOfNorm, featureMap, cellsAmountXDirection, cellsAmountYDirection, amountOfOrientationBinsPerChannel, amountOfOrientationBins, amountOfFeaturesPerCell):
     ###Creates 4 normalized features for each cell, creates the features by normalizing the targeted cell with the norm of the 4 cells in that direction(incl. itself) - e.g. southwest, northwest, northeast, southeast
     for i in range(1, int(cellsAmountYDirection+1)):
@@ -200,7 +200,7 @@ def createNormalizedFeatures(newData, partOfNorm, featureMap, cellsAmountXDirect
 
             newData[pos2+10*amountOfOrientationBinsPerChannel:pos2+12*amountOfOrientationBinsPerChannel] = featureMap[pos1+amountOfOrientationBinsPerChannel:pos1+3*amountOfOrientationBinsPerChannel] / valOfNorm
 
-@cc.export('func4', '(f4[:], f4[:], i8, i8, i8, i8, i8, i8, f8, f8)')
+@cc.export('hogPCA', '(f4[:], f4[:], i8, i8, i8, i8, i8, i8, f8, f8)')
 def hogPCA(newData, featuresMap, totalAmountOfFeaturesPerCell, cellsAmountXDirection, cellsAmountYDirection, newAmountOfFeatures, normalizationFeatures, amountOfBinsPerChannel, nx, ny):
     for i in range(cellsAmountYDirection):
         for j in range(cellsAmountXDirection):

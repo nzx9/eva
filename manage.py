@@ -8,10 +8,12 @@ if __name__ == "__main__":
 
     from django.core.management import execute_from_command_line
     if(sys.argv[1] == "compileFhog"):
-        #try:
-        fhog.compile_cc()
-        #except:
-        #    print("It appears to be that fhog has already been compiled, delete the old compiled file if you want to "
-        #          "recompile it")
+        try:
+            fhog.compile_cc()
+            pass
+        except AttributeError:
+            print("It appears to be that fhog has already been compiled, delete the old compiled file if you want to "
+                  "recompile it")
+            pass
     else:
         execute_from_command_line(sys.argv)

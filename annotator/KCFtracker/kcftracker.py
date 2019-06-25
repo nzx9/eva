@@ -32,36 +32,35 @@ def complexDivision(a, b):
 	res[:,:,1] = (a[:, :, 1]*b[:, :, 0] + a[:, :, 0]*b[:, :, 1]) * divisor
 	return res
 
-def rearrange(img):
-	#return np.fft.fftshift(img, axes=(0,1))
-	assert(img.ndim==2)
-	img_ = np.zeros(img.shape, img.dtype)
-	xh, yh = int(img.shape[1]/2), int(img.shape[0]/2)
-	if(img.shape[1]%2 != 0):
-		if(img.shape[1]/2 < xh + 0.5):
-			i = 1
-			k = 0
-		else:
-			i = 0
-			k = 1
-	else:
-		i = 0
-		k = 0
-	if(img.shape[0]%2 != 0):
-		if(img.shape[0]/2 < yh + 0.5):
-			j = 1
-			l = 0
-		else:
-			j = 0
-			l = 1
-	else:
-		j = 0
-		l = 0
-
-	img_[l:yh+l, k:xh+k], img_[yh+l:img.shape[0]-j, xh+k:img.shape[1]-i] = img[yh+l:img.shape[0]-j, xh+k:img.shape[1]-i], img[l:yh+l, k:xh+k]
-	img_[l:yh+l, xh+k:img.shape[1]-i], img_[yh+l:img.shape[0]-j, k:xh+k] = img[yh+l:img.shape[0]-j, k:xh+k], img[l:yh+l, xh+k:img.shape[1]-i]
-
-	return img_
+# def rearrange(img):
+# 	assert(img.ndim==2)
+# 	img_ = np.zeros(img.shape, img.dtype)
+# 	xh, yh = int(img.shape[1]/2), int(img.shape[0]/2)
+# 	if(img.shape[1]%2 != 0):
+# 		if(img.shape[1]/2 < xh + 0.5):
+# 			i = 1
+# 			k = 0
+# 		else:
+# 			i = 0
+# 			k = 1
+# 	else:
+# 		i = 0
+# 		k = 0
+# 	if(img.shape[0]%2 != 0):
+# 		if(img.shape[0]/2 < yh + 0.5):
+# 			j = 1
+# 			l = 0
+# 		else:
+# 			j = 0
+# 			l = 1
+# 	else:
+# 		j = 0
+# 		l = 0
+#
+# 	img_[l:yh+l, k:xh+k], img_[yh+l:img.shape[0]-j, xh+k:img.shape[1]-i] = img[yh+l:img.shape[0]-j, xh+k:img.shape[1]-i], img[l:yh+l, k:xh+k]
+# 	img_[l:yh+l, xh+k:img.shape[1]-i], img_[yh+l:img.shape[0]-j, k:xh+k] = img[yh+l:img.shape[0]-j, k:xh+k], img[l:yh+l, xh+k:img.shape[1]-i]
+#
+# 	return img_
 
 
 # recttools
@@ -132,14 +131,14 @@ class KCFTracker:
 
 		if (multiscale):
 			self.template_size = config['template_size_multiscale']  # template size
-			self.scale_step = config['scale_step_multiscale'] #1.05  # scale step for multi-scale estimation
-			self.scale_weight = config['scale_weight_multiscale']#0.96  # to downweight detection scores of other scales for added stability
+			self.scale_step = config['scale_step_multiscale']   # scale step for multi-scale estimation
+			self.scale_weight = config['scale_weight_multiscale']  # to downweight detection scores of other scales for added stability
 		elif (fixed_window):
-			self.template_size = config['template_size_fixed_window'] #96
-			self.scale_step = config['scale_step_fixed_window'] #1
+			self.template_size = config['template_size_fixed_window']
+			self.scale_step = config['scale_step_fixed_window']
 		else:
-			self.template_size = config['template_size_else'] #1
-			self.scale_step = config['scale_step_else'] #1
+			self.template_size = config['template_size_else']
+			self.scale_step = config['scale_step_else']
 
 		self._template_size = [0, 0]  # cv::Size, [width,height]  #[int,int]
 		self._roi = [0., 0., 0., 0.]# cv::Rect2f, [x,y,width,height]  #[float,float,float,float]
@@ -180,37 +179,24 @@ class KCFTracker:
 		return fftd(res)
 
 	def gaussianCorrelation(self, x1, x2):
-		#t0 = time()
+		###The gaussian kernel function
 		if(self._hogfeatures):
 			c = np.zeros((int(self.size_patch[0]), int(self.size_patch[1]), 2), np.float32)
 			for i in range(int(self.size_patch[2])):
 				x1aux = x1[i, :].reshape((int(self.size_patch[0]), int(self.size_patch[1])))
 				x2aux = x2[i, :].reshape((int(self.size_patch[0]), int(self.size_patch[1])))
 				caux = cv2.mulSpectrums(fftd(x1aux), fftd(x2aux), 0, conjB = True)
-				#caux = real(np.fft.ifft2(caux))
-				#caux = rearrange(caux)
 				c += caux
 			c = real(cv2.idft(c, flags=(cv2.DFT_SCALE)))
-			#c = rearrange(c)
 		else:
 			c = cv2.mulSpectrums(fftd(x1), fftd(x2), 0, conjB = True)   # 'conjB=' is necessary!
 			c = real(cv2.idft(c, flags=(cv2.DFT_SCALE)))
-			#c = fftd(c, True)
-			#c = real(c)
-			#c = rearrange(c)
-
-		#t1 = time()
-		#self.tt = 0.9*self.tt + 0.1*(t1-t0)
-		#print( self.tt)
 
 		if(x1.ndim==3 and x2.ndim==3):
 			d = (np.sum(x1[:, :, 0] * x1[:, :, 0]) + np.sum(x2[:, :, 0] * x2[:, :, 0]) - 2.0 * c) / (
 						self.size_patch[0] * self.size_patch[1] * self.size_patch[2])
-			#d = (np.sum(np.linalg.norm(x1[:, :, 0]) ** 2 x1[:,:, 0] * x1[:,:, 0]) + np.sum(
-			#	x2[:, :, 0] * x2[:, :, 0]) - 2.0 * c) / (self.size_patch[0] * self.size_patch[1] * self.size_patch[2])
-			#d = (np.sum(x1[:,:,0]**2) + np.sum(x2[:,:,0]**2) - 2.0*c) / (self.size_patch[0]*self.size_patch[1]*self.size_patch[2])
 		elif(x1.ndim==2 and x2.ndim==2):
-			d = (np.sum(x1**2) + np.sum(x2**2) - 2.0*c) / (self.size_patch[0]*self.size_patch[1]*self.size_patch[2]) #(x1*x1) + np.sum(x2*x2) - 2.0*c) / (self.size_patch[0]*self.size_patch[1]*self.size_patch[2])
+			d = (np.sum(x1**2) + np.sum(x2**2) - 2.0*c) / (self.size_patch[0]*self.size_patch[1]*self.size_patch[2])
 
 		d = d * (d>=0)
 		d = np.exp(-d / (self.sigma*self.sigma))
@@ -218,7 +204,7 @@ class KCFTracker:
 		return d
 
 	def getFeatures(self, image, inithann, scale_adjust=1.0):
-		extracted_roi = [0,0,0,0]   #[int,int,int,int]
+		extracted_roi = [0, 0, 0, 0]   #[int,int,int,int]
 		cx = self._roi[0] + self._roi[2]/2  #float
 		cy = self._roi[1] + self._roi[3]/2  #float
 
@@ -250,24 +236,24 @@ class KCFTracker:
 		extracted_roi[0] = int(cx - extracted_roi[2]/2)
 		extracted_roi[1] = int(cy - extracted_roi[3]/2)
 
-		z = subwindow(image, extracted_roi, cv2.BORDER_REPLICATE)
-		if(z.shape[1]!=self._template_size[0] or z.shape[0]!=self._template_size[1]):
-			z = cv2.resize(z, tuple(self._template_size))
+		boxImage = subwindow(image, extracted_roi, cv2.BORDER_REPLICATE)
+		if(boxImage.shape[1]!=self._template_size[0] or boxImage.shape[0]!=self._template_size[1]):
+			boxImage = cv2.resize(boxImage, tuple(self._template_size))
 		if(self._hogfeatures):
 			featureMap = {'sizeX':0, 'sizeY':0, 'numFeatures':0, 'map':0}
-			featureMap = getFeatureMaps(z, self.cell_size, featureMap) #Create the hog-feature map
+			featureMap = getFeatureMaps(boxImage, self.cell_size, featureMap) #Create the hog-feature map
 			featureMap = normalizeAndTruncate(featureMap, 0.2) #creates normalized features and truncates the map
 			featureMap = PCAFeatureMaps(featureMap) #Creates new features that should better describe it
-			##I have changed to float, originally int, might create computational errors
+
 			self.size_patch = list(map(float, [featureMap['sizeY'], featureMap['sizeX'], featureMap['numFeatures']]))
 			finalFeaturesMap = featureMap['map'].reshape((int(self.size_patch[0]*self.size_patch[1]), int(self.size_patch[2]))).T   # (size_patch[2], size_patch[0]*size_patch[1])
 		else:
-			if(z.ndim==3 and z.shape[2]==3):
-				finalFeaturesMap = cv2.cvtColor(z, cv2.COLOR_BGR2GRAY)   # z:(size_patch[0], size_patch[1], 3)  FeaturesMap:(size_patch[0], size_patch[1])   #np.int8  #0~255
-			elif(z.ndim==2):
-				finalFeaturesMap = z   #(size_patch[0], size_patch[1]) #np.int8  #0~255
+			if(boxImage.ndim==3 and boxImage.shape[2]==3):
+				finalFeaturesMap = cv2.cvtColor(boxImage, cv2.COLOR_BGR2GRAY)   # boxImage:(size_patch[0], size_patch[1], 3)  FeaturesMap:(size_patch[0], size_patch[1])   #np.int8  #0~255
+			elif(boxImage.ndim==2):
+				finalFeaturesMap = boxImage   #(size_patch[0], size_patch[1]) #np.int8  #0~255
 			finalFeaturesMap = finalFeaturesMap.astype(np.float32) / 255.0 - 0.5
-			self.size_patch = [z.shape[0], z.shape[1], 1]
+			self.size_patch = [boxImage.shape[0], boxImage.shape[1], 1]
 
 		if(inithann):
 			self.createHanningMats()  # createHanningMats need size_patch
@@ -276,8 +262,8 @@ class KCFTracker:
 		return finalFeaturesMap
 
 	def detect(self, z, x):
-		k = self.gaussianCorrelation(x, z)
-		res = real(fftd(complexMultiplication(self._alphaf, fftd(k)), True))
+		kxz = self.gaussianCorrelation(x, z)
+		res = real(fftd(complexMultiplication(self._alphaf, fftd(kxz)), True))
 
 		_, pv, _, pi = cv2.minMaxLoc(res)   # pv:float  pi:tuple of int
 		p = [float(pi[0]), float(pi[1])]   # cv::Point2f, [x,y]  #[float,float]
@@ -292,8 +278,8 @@ class KCFTracker:
 		return p, pv
 
 	def train(self, x, train_interp_factor):
-		k = self.gaussianCorrelation(x, x)
-		alphaf = complexDivision(self._prob, fftd(k)+self.lambdar)
+		kxx = self.gaussianCorrelation(x, x)
+		alphaf = complexDivision(self._prob, fftd(kxx)+self.lambdar)
 
 		self._template = (1-train_interp_factor)*self._template + train_interp_factor*x
 		self._alphaf = (1-train_interp_factor)*self._alphaf + train_interp_factor*alphaf
@@ -345,5 +331,6 @@ class KCFTracker:
 
 		x = self.getFeatures(image, 0, 1.0)
 		self.train(x, self.interp_factor)
-
+		###It should return true whether it has kept track of the object or not,
+		### however at this moment it can't know if it has lost track or not so it just returns true
 		return True, self._roi
