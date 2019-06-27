@@ -32,37 +32,6 @@ def complexDivision(a, b):
 	res[:,:,1] = (a[:, :, 1]*b[:, :, 0] + a[:, :, 0]*b[:, :, 1]) * divisor
 	return res
 
-# def rearrange(img):
-# 	assert(img.ndim==2)
-# 	img_ = np.zeros(img.shape, img.dtype)
-# 	xh, yh = int(img.shape[1]/2), int(img.shape[0]/2)
-# 	if(img.shape[1]%2 != 0):
-# 		if(img.shape[1]/2 < xh + 0.5):
-# 			i = 1
-# 			k = 0
-# 		else:
-# 			i = 0
-# 			k = 1
-# 	else:
-# 		i = 0
-# 		k = 0
-# 	if(img.shape[0]%2 != 0):
-# 		if(img.shape[0]/2 < yh + 0.5):
-# 			j = 1
-# 			l = 0
-# 		else:
-# 			j = 0
-# 			l = 1
-# 	else:
-# 		j = 0
-# 		l = 0
-#
-# 	img_[l:yh+l, k:xh+k], img_[yh+l:img.shape[0]-j, xh+k:img.shape[1]-i] = img[yh+l:img.shape[0]-j, xh+k:img.shape[1]-i], img[l:yh+l, k:xh+k]
-# 	img_[l:yh+l, xh+k:img.shape[1]-i], img_[yh+l:img.shape[0]-j, k:xh+k] = img[yh+l:img.shape[0]-j, k:xh+k], img[l:yh+l, xh+k:img.shape[1]-i]
-#
-# 	return img_
-
-
 # recttools
 def x2(rect):
 	return rect[0] + rect[2]

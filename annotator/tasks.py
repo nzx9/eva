@@ -110,9 +110,7 @@ def create_cache_task(video_id):
         images = []
         for file in files:
             img = cv2.imread(file)
-            logger.info('hello: {}'.format(img))
             img = cv2.resize(img, new_size, interpolation=cv2.INTER_CUBIC)
-            logger.info('hello2: {}'.format(img))
             images.append(img)
 
         path = os.path.join(settings.MEDIA_ROOT, 'cache')

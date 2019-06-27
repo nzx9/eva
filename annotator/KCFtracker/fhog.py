@@ -2,14 +2,11 @@ import numpy as np
 import cv2
 import math
 from .fhog_utils import mapPointsToBins, aggregateToHOGFeatureMap, createNormalizedFeatures, hogPCA
-from .yamlConfigHandling import load_config
-#from fhog_utilsJIT import func1
 import yaml
 from time import time, clock
 
 # constant
-config = load_config('annotator/KCFtracker/KCF_config.yml')
-NUM_SECTOR = config['num_sector']
+NUM_SECTOR = 9
 FLT_EPSILON = 0.0000001 #To not have division by zero
 
 ## This is file involves functions used to compute histogram of oriented gradients
@@ -46,10 +43,6 @@ def getFeatureMaps(image, cellSize, featuresMap):
 	### to calculate the bin-value(for the histogram), where r is the radians
 	r = np.zeros((height, width), np.float32) ## The radians
 	alpha = np.zeros((height, width, 2), np.int64) ## Will be the directions in which the maximum gradient was found
-	#alphaLow = np.zeros((height, width), np.int64)  ## Will be the directions in which the maximum gradient was found
-	#alphaHigh = np.zeros((height, width), np.int64)
-	#alphaHighWeights = np.zeros((height, width), np.float32) ## These are used to interpolate between angle bins
-	#alphaLowWeights = np.zeros((height, width), np.float32)
 	mapPointsToBins(dx, dy, boundary_x, boundary_y, r, alpha, height, width, numChannels) #with @jit
 	### ~0.001s
 	nearestCell = np.ones(cellSize, np.int64)
