@@ -169,7 +169,7 @@ class ExportLabels(View):
                 name = 'multiple'
                 videos = [v for v in Video.objects.filter(id__in=video_ids)]
                 for vid in videos:
-                    files = convert_to_darknet(vid.id)
+                    files = convert_to_darknet(vid)
                     for file, text in files.items():
                         zf.writestr(os.path.join(vid.name, file), text)
 
