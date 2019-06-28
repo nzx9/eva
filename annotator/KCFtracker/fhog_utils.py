@@ -7,7 +7,7 @@ import os
 NUM_SECTOR = 9
 FLT_EPSILON = 0.0000001 #To not have division by zero
 
-cc = CC('fhog_utils')
+cc = CC('fhog_utils_cpp')
 def compile_cc():
     cc.compile()
     print("Compiled!")

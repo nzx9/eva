@@ -1,7 +1,7 @@
 import numpy as np 
 import cv2
 import math
-from .fhog_utils import mapPointsToBins, aggregateToHOGFeatureMap, createNormalizedFeatures, hogPCA
+from .fhog_utils_cpp import mapPointsToBins, aggregateToHOGFeatureMap, createNormalizedFeatures, hogPCA
 import yaml
 from time import time, clock
 
