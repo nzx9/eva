@@ -24,6 +24,7 @@ pip install virtualenv
 virtualenv venv
 venv\Scripts\activate.bat
 pip install --upgrade -r requirements.txt
+python manage.py compileFhog
 python manage.py migrate
 python manage.py collectstatic
 ```
@@ -49,6 +50,7 @@ python3 -m virtualenv venv
 . venv/bin/activate
 pip install --upgrade pip
 pip install --upgrade -r requirements.txt
+python manage.py compileFhog
 python manage.py migrate
 python manage.py collectstatic
 ```

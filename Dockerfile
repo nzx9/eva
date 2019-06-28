@@ -6,6 +6,8 @@ WORKDIR /app
 #apt-get install libglib2.0-dev
 RUN apt-get update && apt-get install -y \
     libglib2.0-dev \
+    libsm6 libxext6 libxrender-dev \
+    g++ \
   && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/
@@ -14,6 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt \
 
 COPY . /app/
 RUN mv /app/eva/deploy_settings /app/eva/deploy_settings.py
+RUN python manage.py compileFhog
 
 EXPOSE 8000
 
