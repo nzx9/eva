@@ -85,6 +85,8 @@ class KCFTracker:
 		self.lambdar = config['lambdar']  # regularization
 		self.padding = config['padding']  # extra area surrounding the target
 		self.output_sigma_factor = config['output_sigma_factor']  # bandwidth of gaussian target
+		self.detect_threshold = config['detect_threshold']
+		self.detect_threshold_interp = config['detect_threshold_interp']
 		if (hog):  # HOG feature
 			# VOT
 			self.interp_factor = config['interp_factor_hog']  # linear interpolation factor for adaptation
@@ -261,6 +263,7 @@ class KCFTracker:
 		self._prob = self.createGaussianPeak(self.size_patch[0], self.size_patch[1])
 		self._alphaf = np.zeros((int(self.size_patch[0]), int(self.size_patch[1]), 2), np.float32)
 		self.train(self._template, 1.0)
+		_, self._initPeak = self.detect(self._template, self.getFeatures(image, 0, 1.0 / self.scale_step))
 
 	def update(self, image):
 		if(self._roi[0]+self._roi[2] <= 0):  self._roi[0] = -self._roi[2] + 1
@@ -297,7 +300,12 @@ class KCFTracker:
 		if(self._roi[0]+self._roi[2] <= 0):  self._roi[0] = -self._roi[2] + 2
 		if(self._roi[1]+self._roi[3] <= 0):  self._roi[1] = -self._roi[3] + 2
 		assert(self._roi[2]>0 and self._roi[3]>0)
-
+		print(self._initPeak)
+		if(peak_value < self.detect_threshold*self._initPeak):
+			return False, self._roi
+		else:
+			self._initPeak = self.detect_threshold_interp*peak_value + (1-self.detect_threshold_interp)*self._initPeak
+		print(peak_value)
 		x = self.getFeatures(image, 0, 1.0)
 		self.train(x, self.interp_factor)
 		###It should return true whether it has kept track of the object or not,

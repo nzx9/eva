@@ -51,7 +51,6 @@ def tracker_task(video_id, frame_no, bbox):
     coordinates[frame_no] = [c // global_scale for c in bbox]
     frame = hdf5_file['img'][frame_no, ...]
     tracker.init(bbox, frame)
-
     low = frame_no + 1
     last_frame = (frame_no//settings.TRACKER_SIZE + 1)*settings.TRACKER_SIZE
     num_images = hdf5_file['img'].shape[0]

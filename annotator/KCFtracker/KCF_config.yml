@@ -1,11 +1,15 @@
 #OVERALL SETTINGS
 lambdar: 0.0001
-padding: 4.5 #Adds extra padding on the box to allow better detection of object, a value of 2 gives a 2 times larger box
+padding: 2 #Adds extra padding on the box to allow better detection of object, a value of 2 gives a 2 times larger box
               # that it tries to track
 output_sigma_factor: 0.125
 hog: True #Decides whether you use hog-features or not
 multiscale: True #If you want to use scaling
 fixed_window: False #If multiscale is False and fixed_window is True then it will be using fixed window
+detect_threshold: 0.5 #The threshold in which if below it is below
+                      #(relative to the original probability from the initial bounding box and image) it will lose track of object
+detect_threshold_interp: 0.05 #How much the moving average weight should be between changing the detect_threshold of comparing with the latest images and boxes vs the past,
+                              #set to zero if you only want to compare with the initial image.
 
 
 #IF YOU USE HOG-FEATURES
