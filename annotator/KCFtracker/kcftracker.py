@@ -300,12 +300,12 @@ class KCFTracker:
 		if(self._roi[0]+self._roi[2] <= 0):  self._roi[0] = -self._roi[2] + 2
 		if(self._roi[1]+self._roi[3] <= 0):  self._roi[1] = -self._roi[3] + 2
 		assert(self._roi[2]>0 and self._roi[3]>0)
-		print(self._initPeak)
+		#print(self._initPeak)
 		if(peak_value < self.detect_threshold*self._initPeak):
 			return False, self._roi
 		else:
 			self._initPeak = self.detect_threshold_interp*peak_value + (1-self.detect_threshold_interp)*self._initPeak
-		print(peak_value)
+		#print(peak_value)
 		x = self.getFeatures(image, 0, 1.0)
 		self.train(x, self.interp_factor)
 		###It should return true whether it has kept track of the object or not,
