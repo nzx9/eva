@@ -6,3 +6,4 @@ s3cfg
 .idea/
 media
 mturk
+annotator/KCFtracker/*.pyd
