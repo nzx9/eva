@@ -14,6 +14,7 @@ Requirements:
 * Redis: https://github.com/MicrosoftArchive/redis/releases/download/win-3.2.100/Redis-x64-3.2.100.msi
 * Browser: Google-Chrome Version > 49.0, Firefox Version > 45.0
 * FFMPEG (optional for video upload): https://ffmpeg.zeranoe.com/builds/
+* Microsoft Visual Studio: https://visualstudio.microsoft.com/downloads/ (to have a cpp-compiler)
 
 Install:
 ```powershell
@@ -38,7 +39,7 @@ In Chrome or Firefox go to http://127.0.0.1:8000/.
 Requirements:
 * Python 3.6.5, redis, ffmpeg. On Ubuntu these packages can be installed
   with the following command (tested on 18.04):
-  `sudo apt-get -y install python3 python3-pip ffmpeg redis`
+  `sudo apt-get -y install python3 python3-pip ffmpeg redis g++`
 * Browser: Google-Chrome Version > 49.0, Firefox Version > 45.0
 
 Install:
