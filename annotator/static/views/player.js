@@ -159,6 +159,33 @@ class PlayerView {
                 $(this).triggerHandler('create-rect', rect);
             });
 
+            this.video.onTimeUpdate(() => {
+                var {videoWidth, videoHeight, viewWidth, viewHeight} = this.video;
+                var css = {
+                    position: 'absolute',
+                    'margin-left': 'auto',
+                    'margin-right': 'auto',
+                    'margin-top': 'auto',
+                    'margin-bottom': 'auto',
+                    left: 0,
+                    right: 0,
+                    top : 0,
+                    bottom : 0,
+                    'width': `${viewWidth}px`,
+                    'height': `${viewHeight}px`,
+                };
+                $(this.$paper.canvas).attr({
+                    viewBox: `0 0 ${videoWidth} ${videoHeight}`,
+                }).css(css);
+                this.$paper.setSize(videoWidth, videoHeight);
+                this.creationRect.bounds = {
+                    xMin: 0,
+                    xMax: this.$paper.width,
+                    yMin: 0,
+                    yMax: this.$paper.height,
+                };
+            });
+
             this.drawCrosshairs();
 
             this.paperReady.resolve();
@@ -188,8 +215,14 @@ class PlayerView {
             var x = (e.pageX - offset.left) / scale;
             var y = (e.pageY - offset.top) / scale;
 
+            h_line.remove();
+            h_line = that.$paper.path(`M0 0L` + that.$paper.width + " 0").attr({stroke:'#FFFFFF'});
             h_line.transform("T" + 0 + "," + y);
+            v_line.remove();
+            v_line = that.$paper.path("M0 0L0 " + that.$paper.height).attr({stroke:'#FFFFFF'});
             v_line.transform("T" + x + "," + 0);
+            h_line.toBack();
+            v_line.toBack();
         });
     }
 
@@ -243,7 +276,7 @@ class PlayerView {
             this.loading = isBuffering;
             //this.pause()
 
-        })
+        });
     }
 
     initHandlers() {

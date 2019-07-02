@@ -113,10 +113,10 @@ class ImageFramePlayer extends AbstractFramePlayer {
         image.src = this.imgPlayer.frames[0].src;
     }
     get videoWidth() {
-        return this.imgPlayer.frames[0].width;
+        return this.imgPlayer.frames[this.imgPlayer.getCurrentFrame()].width;
     }
     get videoHeight() {
-        return this.imgPlayer.frames[0].height;
+        return this.imgPlayer.frames[this.imgPlayer.getCurrentFrame()].height;
     }
 
     get viewWidth() {

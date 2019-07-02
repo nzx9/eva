@@ -1,30 +1,56 @@
-!function($) {
-    $.imgplay = function(element, n) {
-        var s = {
-            name: "imgplay",
+/* The MIT License (MIT)
+
+Copyright (c) 2016 Saranga Abeykoon
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+(function($) {
+    $.imgplay = function(element, options) {
+        var defaults = {
+            name: 'imgplay',
             rate: 1,
-            controls: !0,
+            controls: true,
             pageSize: 5
-        }
-          , plugin = this
-          , el = element
-          , $el = $(element)
-          , $canvas = null
-          , screen = null
-          , loadFrame  = !1
-          , direction = "forward"
-          , total = 0
-          , index = 0
-          , buffer = []
-          , loadMore  = null
-          , bufferLoading = []
-          , drawnHeight = 0
-          , drawnWidth = 0;
-        plugin.settings = {},
+        };
+
+        var plugin = this;
+        var el = element;
+        var $el = $(element);
+        var $canvas = null;
+        var screen = null;
+        var playing = false;
+        var direction = 'forward';
+        var page = 1;
+        var total = 0;
+        var index = 0;
+        var buffer = [];
+        var playTimer = null;
+        var bufferLoading = [];
+        var drawWidth = 0;
+        var drawHeight = 0;
+
+        plugin.settings = {};
+
         plugin.getTotalFrames = function() {
-            return total
-        }
-        ,
+            return total;
+        };
+
         plugin.controls = {
             play: null,
             pause: null,
@@ -34,303 +60,441 @@
             previousFrame: null,
             nextFrame: null,
             fullscreen: null
-        },
-        plugin.getDrawnHeight = function() {
-            return drawnHeight
-        }
-        ,
-        plugin.getDrawnWidth = function() {
-            return drawnWidth
-        }
-        ,
-        plugin.frames = [],
-        plugin.init = function() {
-            plugin.settings = $.extend({}, s, n),
-            plugin.settings.rate = plugin.settings.rate < .001 ? .001 : plugin.settings.rate,
-            plugin.settings.rate = plugin.settings.rate > 100 ? 100 : plugin.settings.rate,
-            $el.addClass("imgplay"),
-            $canvas = $('<canvas class="imgplay-canvas">'),
-            screen = $canvas.get(0).getContext("2d"),
-            $el.append($canvas),
-            w(),
-            $el.find("img").each(function(element, n) {
-                "" != $(n).prop("src") ? plugin.frames[element] = n : buffer[element] = n,
-                total++
-            }).detach(),
-            $(window).resize(k),
-            k()
-        }
-        ,
-        plugin.isloadFrame  = function() {
-            return loadFrame 
-        }
-        ,
-        plugin.getCurrentFrame = function() {
-            return index
-        }
-        ,
-        plugin.play = function() {
-            loadFrame  = !0,
-            direction = "forward",
-            drawFrame(),
-            plugin.settings.controls && (plugin.controls.play.addClass("active"),
-            plugin.controls.stop.removeClass("active"),
-            plugin.controls.pause.removeClass("active"),
-            plugin.controls.rewind.removeClass("active"),
-            plugin.controls.forward.removeClass("active"))
-        }
-        ,
-        plugin.pause = function() {
-            loadFrame  = !1,
-            null != loadMore  && clearTimeout(loadMore ),
-            plugin.settings.controls && (plugin.controls.pause.addClass("active"),
-            plugin.controls.play.removeClass("active"),
-            plugin.controls.stop.removeClass("active"),
-            plugin.controls.rewind.removeClass("active"),
-            plugin.controls.forward.removeClass("active"))
-        }
-        ,
-        plugin.stop = function() {
-            loadFrame  = !1,
-            index = 0,
-            plugin.settings.controls && (plugin.controls.stop.addClass("active"),
-            plugin.controls.play.removeClass("active"),
-            plugin.controls.pause.removeClass("active"),
-            plugin.controls.rewind.removeClass("active"),
-            plugin.controls.forward.removeClass("active"))
-        }
-        ,
-        plugin.rewind = function($) {
-            var $ = parseInt($);
-            $ > 0 && index >= $ && (direction = "backward",
-            index -= $,
-            drawFrame()),
-            plugin.settings.controls && (plugin.controls.rewind.addClass("active"),
-            plugin.controls.forward.removeClass("active"),
-            plugin.controls.stop.removeClass("active"),
-            plugin.controls.play.removeClass("active"),
-            plugin.controls.pause.removeClass("active"))
-        }
-        ,
-        plugin.forward = function($) {
-            var $ = parseInt($);
-            $ > 0 && total >= index + $ && (direction = "forward",
-            index += $,
-            drawFrame()),
-            plugin.settings.controls && (plugin.controls.forward.addClass("active"),
-            plugin.controls.rewind.removeClass("active"),
-            plugin.controls.stop.removeClass("active"),
-            plugin.controls.play.removeClass("active"),
-            plugin.controls.pause.removeClass("active"))
-        }
-        ,
-        plugin.fastRewind = function($) {
-            var $ = parseInt($);
-            $ > 0 && (direction = "backward",
-            plugin.settings.rate = $),
-            drawFrame()
-        }
-        ,
-        plugin.fastForward = function($) {
-            var $ = parseInt($);
-            $ > 0 && (direction = "forward",
-            plugin.settings.rate = $),
-            drawFrame()
-        }
-        ,
-        plugin.previous = function() {}
-        ,
-        plugin.next = function() {}
-        ,
-        plugin.previousFrame = function() {
-            loadFrame  = !1,
-            direction = "backward",
-            index--,
-            drawFrame()
-        }
-        ,
-        plugin.nextFrame = function() {
-            loadFrame  = !1,
-            direction = "forward",
-            index++,
-            drawFrame()
-        }
-        ,
-        plugin.toFrame = function($) {
-            if ($ = $ < 0 ? 0 : $,
-            plugin.frames[$])
-                return index = $,
-                drawFrame(),
-                index > plugin.frames.length - plugin.settings.pageSize / 2 && loadMore (),
-                jQuery.Deferred().resolve();
-            for (plugin.settings.onLoading && plugin.settings.onLoading(!0),
-            index = $,
-            loadFrom = $ - .1 * plugin.settings.pageSize,
-            loadFrom < 0 && (loadFrom = 0); plugin.frames[loadFrom]; )
-                loadFrom++;
-            return loadMore (loadFrom).then(function() {
-                plugin.settings.onLoading && plugin.settings.onLoading(!1),
-                index == $ && drawFrame()
-            })
-        }
-        ,
-        plugin.fullscreen = function($) {
-            document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement ? (document.exitFullscreen ? document.exitFullscreen() : document.msExitFullscreen ? document.msExitFullscreen() : document.mozCancelFullScreen ? document.mozCancelFullScreen() : document.webkitExitFullscreen && document.webkitExitFullscreen(),
-            plugin.settings.controls && plugin.controls.fullscreen.removeClass("active")) : (el.requestFullscreen ? el.requestFullscreen() : el.msRequestFullscreen ? el.msRequestFullscreen() : el.mozRequestFullScreen ? el.mozRequestFullScreen() : el.webkitRequestFullscreen && el.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT),
-            plugin.settings.controls && plugin.controls.fullscreen.addClass("active")),
-            setTimeout(function() {
-                k()
-            }, 2e3)
-        }
-        ;
-        var w = function() {
-            if (plugin.settings.controls && 0 == $el.find(".imgplay-controls").length) {
-                var element = $('<div class="imgplay-controls"></div>')
-                  , n = $('<div class="imgplay-progress">')
-                  , s = $('<div class="imgplay-buttons">')
-                  , el = $('<div class="imgplay-load-bar">')
-                  , $canvas = $('<div class="imgplay-play-bar">')
-                  , screen = $('<div class="imgplay-button imgplay-play"><$canvas class="material-icons">play_arrow</$canvas></div>')
-                  , loadFrame  = $('<div class="imgplay-button imgplay-pause"><$canvas class="material-icons">pause</$canvas></div>')
-                  , direction = $('<div class="imgplay-button imgplay-stop"><$canvas class="material-icons">stop</$canvas></div>')
-                  , index = $('<div class="imgplay-button imgplay-previous-frame"><$canvas class="material-icons">skip_previous</$canvas></div>')
-                  , buffer = $('<div class="imgplay-button imgplay-next-frame"><$canvas class="material-icons">skip_next</$canvas></div>')
-                  , loadMore  = $('<div class="imgplay-button imgplay-fullscreen"><$canvas class="material-icons">fullscreen</$canvas></div>');
-                screen.on("click", function() {
-                    plugin.play()
-                }),
-                loadFrame .on("click", function() {
-                    plugin.pause()
-                }),
-                direction.on("click", function() {
-                    plugin.stop()
-                }),
-                index.on("click", function() {
-                    plugin.previousFrame()
-                }),
-                buffer.on("click", function() {
-                    plugin.nextFrame()
-                }),
-                loadMore .on("click", function() {
-                    plugin.fullscreen()
-                }),
-                n.on("click", function(element) {
-                    var n = $(this)
-                      , s = element.pageX - n.offset().left
-                      , el = n.width()
-                      , $el = Math.floor(s / el * total);
-                    plugin.toFrame($el)
-                }),
-                el.append($canvas),
-                n.append(el),
-                s.append([screen, loadFrame , index, direction, buffer, loadMore ]),
-                element.append([n, s]),
-                $el.append(element),
-                plugin.controls.play = screen,
-                plugin.controls.pause = loadFrame ,
-                plugin.controls.stop = direction,
-                plugin.controls.previousFrame = index,
-                plugin.controls.nextFrame = buffer,
-                plugin.controls.fullscreen = loadMore 
-            }
-        }
-          , drawFrame = function() {
-            if (null != screen) {
-                var element = plugin.frames[index]
-                  , n = $(element);
-                if (element) {
-                    if (n.prop("naturalHeight") > 0) {
-                        var s = $canvas.width()
-                          , el = $canvas.height()
-                          , $el = element.width
-                          , bufferLoading = element.height
-                          , w = 0
-                          , loadFrame  = 0;
-                        $el >= bufferLoading ? (w = s,
-                        loadFrame  = bufferLoading * (s / $el),
-                        loadFrame  > el && (loadFrame  = el,
-                        w = $el * (el / bufferLoading))) : (loadFrame  = el,
-                        w = $el * (el / bufferLoading),
-                        w > s && (w = s,
-                        loadFrame  = bufferLoading * (s / $el))),
-                        drawnHeight = loadFrame ,
-                        drawnWidth = w,
-                        screen.clearRect(0, 0, s, el),
-                        plugin.settings.center ? screen.drawImage(element, (s - w) / 2, (el - loadFrame ) / 2, w, loadFrame ) : screen.drawImage(element, 0, 0, w, loadFrame )
-                    }
-                } else if (buffer.length && index < total) {
-                    var k = loadFrame ;
-                    return plugin.pause(),
-                    k && plugin.settings.onLoading && plugin.settings.onLoading(!0),
-                    void loadMore (index, k)
-                }
-                if (index < 0 || index > plugin.frames.length)
-                    return void plugin.stop();
-                loadFrame  && ("forward" == direction ? (index++,
-                index > plugin.frames.length - plugin.settings.pageSize / 2 && loadMore ()) : index--,
-                loadMore  = setTimeout(drawFrame, Math.ceil(1e3 / plugin.settings.rate))),
-                b()
-            }
-        }
-          , loadMore  = function($, element) {
-            var n, s = void 0 != $ ? $ : index;
-            if (buffer.length)
-                for (var el = s; el < plugin.settings.pageSize + s && el < buffer.length; el++) {
-                    var $el = loadFrame (el, element);
-                    el == $ && (n = $el)
-                }
-            return n
-        }
-          , loadFrame  = function(element, n) {
-            if (bufferLoading[element])
-                return bufferLoading[element];
-            var s = jQuery.Deferred();
-            if (bufferLoading[element] = s,
-            element < buffer.length) {
-                var el = buffer[element]
-                  , $el = $(el);
-                $el.data("src") && ($el.prop("src", $el.data("src")),
-                $el.on("load", function() {
-                    plugin.frames[element] = el,
-                    b(),
-                    n && element == index + plugin.settings.pageSize / 2 && 0 == loadFrame  && (plugin.settings.onLoading && plugin.settings.onLoading(!1),
-                    plugin.play()),
-                    delete bufferLoading[element],
-                    s.resolve()
-                }))
-            }
-            return s
-        }
-          , b = function() {
-            if (plugin.settings.controls) {
-                var $ = plugin.frames.length / total * 100
-                  , element = index / plugin.frames.length * 100;
-                $ = $ > 100 ? 100 : $,
-                element = element > 100 ? 100 : element,
-                $el.find(".imgplay-load-bar").css("width", $ + "%"),
-                $el.find(".imgplay-play-bar").css("width", element + "%")
-            }
-        }
-          , k = function() {
-            $canvas.prop({
-                height: $el.height(),
-                width: $el.width()
-            }),
-            drawFrame()
         };
-        plugin.fitCanvas = function() {
-            k()
-        }
-        ,
-        plugin.init()
-    }
-    ,
-    $.fn.imgplay = function(element) {
-        return this.each(function() {
-            if (void 0 == $(this).data("imgplay")) {
-                var n = new $.imgplay(this,element);
-                $(this).data("imgplay", n)
+
+        plugin.frames = [];
+
+        plugin.init = function() {
+            plugin.settings = $.extend({}, defaults, options);
+
+            // max rate is 100 fps and min rate is 0.001 fps
+            plugin.settings.rate = (plugin.settings.rate < 0.001) ? 0.001 : plugin.settings.rate;
+            plugin.settings.rate = (plugin.settings.rate > 100) ? 100 : plugin.settings.rate;
+
+            $el.addClass('imgplay');
+            $canvas = $('<canvas class="imgplay-canvas">');
+            screen = $canvas.get(0).getContext('2d');
+            $el.append($canvas);
+            initControls();
+
+            // prepare images list
+            $el.find('img').each(function(j, img) {
+                if($(img).prop('src') != '') {
+                    plugin.frames[j] = img;
+                } else {
+                    buffer[j] = img;
+                }
+
+                total++;
+            }).detach();
+
+            $(window).resize(resize);
+            resize();
+        };
+
+        plugin.isPlaying = function() {
+            return playing;
+        };
+
+        plugin.getCurrentFrame = function() {
+            return index;
+        };
+
+        plugin.play = function() {
+            playing = true;
+            direction = 'forward';
+            drawFrame();
+
+            if (plugin.settings.controls) {
+                plugin.controls.play.addClass('active');
+                plugin.controls.stop.removeClass('active');
+                plugin.controls.pause.removeClass('active');
+                plugin.controls.rewind.removeClass('active');
+                plugin.controls.forward.removeClass('active');
             }
-        })
-    }
-}(jQuery);
+        };
+
+        plugin.pause = function() {
+            playing = false;
+            if(playTimer != null) {
+                clearTimeout(playTimer);
+            }
+
+            if (plugin.settings.controls) {
+                plugin.controls.pause.addClass('active');
+                plugin.controls.play.removeClass('active');
+                plugin.controls.stop.removeClass('active');
+                plugin.controls.rewind.removeClass('active');
+                plugin.controls.forward.removeClass('active');
+            }
+        };
+
+        plugin.stop = function() {
+            playing = false;
+            index = 0;
+
+            if (plugin.settings.controls) {
+                plugin.controls.stop.addClass('active');
+                plugin.controls.play.removeClass('active');
+                plugin.controls.pause.removeClass('active');
+                plugin.controls.rewind.removeClass('active');
+                plugin.controls.forward.removeClass('active');
+            }
+        };
+
+        plugin.rewind = function(frames) {
+            var frames = parseInt(frames);
+            if(frames > 0 && index >= frames) {
+                direction = 'backward';
+                index -= frames;
+                drawFrame();
+            }
+
+            if (plugin.settings.controls) {
+                plugin.controls.rewind.addClass('active');
+                plugin.controls.forward.removeClass('active');
+                plugin.controls.stop.removeClass('active');
+                plugin.controls.play.removeClass('active');
+                plugin.controls.pause.removeClass('active');
+            }
+        };
+
+        plugin.forward = function(frames) {
+            var frames = parseInt(frames);
+            if(frames > 0 && total >= index + frames) {
+                direction = 'forward';
+                index += frames;
+                drawFrame();
+            }
+
+            if (plugin.settings.controls) {
+                plugin.controls.forward.addClass('active');
+                plugin.controls.rewind.removeClass('active');
+                plugin.controls.stop.removeClass('active');
+                plugin.controls.play.removeClass('active');
+                plugin.controls.pause.removeClass('active');
+            }
+        };
+
+        plugin.fastRewind = function(rate) {
+            var rate = parseInt(rate);
+            if(rate > 0) {
+                direction = 'backward';
+                plugin.settings.rate = rate;
+            }
+            drawFrame();
+        };
+
+        plugin.fastForward = function(rate) {
+            var rate = parseInt(rate);
+            if(rate > 0) {
+                direction = 'forward';
+                plugin.settings.rate = rate;
+            }
+            drawFrame();
+        };
+
+        plugin.previous = function() {
+        };
+
+        plugin.next =  function() {
+        };
+
+        plugin.previousFrame = function() {
+            playing = false;
+            direction = 'backward';
+            index--;
+            drawFrame();
+        };
+
+        plugin.nextFrame = function() {
+            playing = false;
+            direction = 'forward';
+            index++;
+            drawFrame();
+        };
+
+        plugin.toFrame = function(i) {
+            i = i < 0 ? 0 : i;
+
+            if (plugin.frames[i]) {
+                index = i;
+                drawFrame();
+                if (index > plugin.frames.length - plugin.settings.pageSize / 2) {
+                    loadMore();
+                }
+                return jQuery.Deferred().resolve();
+            }
+            else {
+                // tell caller we are loading their requested frame
+                if (plugin.settings.onLoading)
+                    plugin.settings.onLoading(true);
+
+                index = i;
+                // load more but start a few frames back to make sure those a buffered
+                loadFrom = i - plugin.settings.pageSize * 0.1;
+                if (loadFrom < 0)
+                    loadFrom = 0;
+
+                // skip our back load if we already have them
+                while (plugin.frames[loadFrom])
+                    loadFrom++;
+
+                return loadMore(loadFrom).then(function() {
+                    // we have loaded their requested frame
+                    if (plugin.settings.onLoading)
+                        plugin.settings.onLoading(false);
+
+                    // while loading we may have drawn/requested another frame
+                    if (index != i)
+                        return;
+
+                    drawFrame();
+                });
+            }
+        };
+
+        plugin.fullscreen = function(options) {
+            if (!document.fullscreenElement &&    // alternative standard method
+                !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement ) {  // current working methods
+                if (el.requestFullscreen) {
+                    el.requestFullscreen();
+                } else if (el.msRequestFullscreen) {
+                    el.msRequestFullscreen();
+                } else if (el.mozRequestFullScreen) {
+                    el.mozRequestFullScreen();
+                } else if (el.webkitRequestFullscreen) {
+                    el.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+                }
+                if (plugin.settings.controls) {
+                    plugin.controls.fullscreen.addClass('active');
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+                if (plugin.settings.controls) {
+                    plugin.controls.fullscreen.removeClass('active');
+                }
+            }
+
+            setTimeout(function() {
+                resize();
+            }, 2000);
+        };
+
+        plugin.getDrawnWidth = function () {
+            return drawWidth;
+        };
+
+        plugin.getDrawnHeight = function () {
+            return drawHeight;
+        };
+
+        var initControls = function() {
+            if (!plugin.settings.controls) {
+                return;
+            }
+            if ($el.find('.imgplay-controls').length == 0) {
+                var controls = $('<div class="imgplay-controls"></div>');
+                var progress = $('<div class="imgplay-progress">');
+                var buttons = $('<div class="imgplay-buttons">');
+                var loadBar = $('<div class="imgplay-load-bar">');
+                var playBar = $('<div class="imgplay-play-bar">');
+
+                var play = $('<div class="imgplay-button imgplay-play"><i class="material-icons">play_arrow</i></div>');
+                var pause = $('<div class="imgplay-button imgplay-pause"><i class="material-icons">pause</i></div>');
+                var stop = $('<div class="imgplay-button imgplay-stop"><i class="material-icons">stop</i></div>');
+                //var rewind = $('<div class="imgplay-button imgplay-rewind"><i class="material-icons">fast_rewind</i></div>');
+                //var forward = $('<div class="imgplay-button imgplay-forward"><i class="material-icons">fast_forward</i></div>');
+                var previousFrame = $('<div class="imgplay-button imgplay-previous-frame"><i class="material-icons">skip_previous</i></div>');
+                var nextFrame = $('<div class="imgplay-button imgplay-next-frame"><i class="material-icons">skip_next</i></div>');
+                var fullscreen = $('<div class="imgplay-button imgplay-fullscreen"><i class="material-icons">fullscreen</i></div>');
+
+                play.on('click', function() { plugin.play(); });
+                pause.on('click', function() { plugin.pause(); });
+                stop.on('click', function() { plugin.stop(); });
+                //rewind.on('click', function() { plugin.rewind(); })
+                //forward.on('click', function() { plugin.forward(); })
+                previousFrame.on('click', function() { plugin.previousFrame(); });
+                nextFrame.on('click', function() { plugin.nextFrame(); });
+                fullscreen.on('click', function() { plugin.fullscreen(); });
+                progress.on('click', function(evt) {
+                    var target = $(this);
+                    var posX = evt.pageX - target.offset().left;
+                    var width = target.width();
+                    var frame = Math.floor(posX / width * total);
+
+                    plugin.toFrame(frame);
+                });
+
+                loadBar.append(playBar);
+                progress.append(loadBar);
+                buttons.append([play, pause, previousFrame, stop, nextFrame, fullscreen]);
+                controls.append([progress, buttons]);
+                $el.append(controls);
+
+                plugin.controls.play = play;
+                plugin.controls.pause = pause;
+                plugin.controls.stop = stop;
+                //plugin.controls.rewind = rewind;
+                //plugin.controls.forward = forward;
+                plugin.controls.previousFrame = previousFrame;
+                plugin.controls.nextFrame = nextFrame;
+                plugin.controls.fullscreen = fullscreen;
+            }
+        };
+
+        var drawFrame = function() {
+            if (screen != null) {
+                var img = plugin.frames[index];
+                var $img = $(img);
+
+                if (img) {
+                    if ($img.prop('naturalHeight') > 0) {
+                        var cw = $canvas.width();
+                        var ch = $canvas.height();
+                        var iw = img.width;
+                        var ih = img.height;
+                        var vw = 0;
+                        var vh = 0;
+
+                        if (cw >= ch) {
+                            vw = iw * (ch/ih);
+                            vh = ch;
+                        } else {
+                            vw = cw;
+                            vh = ih * (cw/iw);
+                        }
+                        screen.clearRect(0, 0, cw, ch);
+                        drawHeight = vh;
+                        drawWidth = vw;
+                        screen.drawImage(img, (cw - vw) / 2, (ch - vh) / 2, vw, vh);
+                    }
+                } else if (buffer.length) {
+                    var wasPlaying = playing;
+                    plugin.pause();
+
+                    if (wasPlaying && plugin.settings.onLoading)
+                        plugin.settings.onLoading(true);
+
+                    loadMore(index, wasPlaying);
+                    return;
+                }
+
+                if (index < 0 || index > plugin.frames.length) {
+                    plugin.stop();
+                    return;
+                }
+
+                if (playing) {
+                    if (direction == 'forward') {
+                        index++;
+                        if (index > plugin.frames.length -  plugin.settings.pageSize / 2) {
+                            loadMore();
+                        }
+                    } else {
+                        index--;
+                    }
+
+                    playTimer = setTimeout(drawFrame, Math.ceil(1000 / plugin.settings.rate));
+                }
+
+                drawProgress();
+            }
+        };
+
+        var loadMore = function(fromIdx, beginPlaying) {
+            var deferred;
+            var loadFrom = fromIdx != undefined ? fromIdx : index;
+            if (buffer.length) {
+                for(var i = loadFrom; (i < plugin.settings.pageSize + loadFrom && i < buffer.length); i++) {
+                    var p = loadFrame(i, beginPlaying);
+                    if (i == fromIdx) {
+                        deferred = p; // return the promise of the frame they asked for
+                    }
+                }
+            }
+            return deferred;
+        };
+
+        var loadFrame = function(i, beginPlaying) {
+            // are we already loading this frame?
+            if (bufferLoading[i])
+                return bufferLoading[i];
+
+            var deferred = jQuery.Deferred();
+            bufferLoading[i] = deferred;
+
+            if (i < buffer.length) {
+                var img = buffer[i];
+                var $img = $(img);
+
+                if ($img.data('src')) {
+                    if (img.hasAttribute("src")) {
+                        // It has been loaded already
+                        delete bufferLoading[i];
+                        deferred.resolve();
+                    } else {
+                        $img.prop('src', $img.data('src'));
+                        $img.on('load', function() {
+                            plugin.frames[i] = img;
+                            //buffer.splice(buffer.indexOf(img), 1);
+                            drawProgress();
+                            if (beginPlaying && i == (index + (plugin.settings.pageSize / 2)) && playing == false) {
+                                if (plugin.settings.onLoading)
+                                    plugin.settings.onLoading(false);
+
+                                plugin.play();
+                            }
+                            delete bufferLoading[i];
+                            deferred.resolve();
+                        });
+                    }
+                }
+            }
+            return deferred;
+        };
+
+        var drawProgress = function() {
+            if (!plugin.settings.controls) {
+                return;
+            }
+            var loadProgress = ((plugin.frames.length / total) * 100);
+            var playProgress = ((index / plugin.frames.length) * 100);
+
+            loadProgress = loadProgress > 100 ? 100 : loadProgress;
+            playProgress = playProgress > 100 ? 100 : playProgress;
+
+            $el.find('.imgplay-load-bar').css('width', loadProgress + '%');
+            $el.find('.imgplay-play-bar').css('width',  playProgress + '%');
+        };
+
+        var resize = function() {
+            $canvas.prop({height: $el.height(), width: $el.width()});
+            drawFrame();
+        };
+
+        plugin.fitCanvas = function() {
+            resize();
+        };
+
+
+        plugin.init();
+    };
+
+    $.fn.imgplay = function(options) {
+        return this.each(function() {
+            if($(this).data('imgplay') == undefined) {
+                var plugin = new $.imgplay(this, options);
+                $(this).data('imgplay', plugin);
+            }
+        });
+    };
+})(jQuery);
