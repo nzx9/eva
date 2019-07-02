@@ -82,3 +82,6 @@ docker-compose up
 
 In Chrome or Firefox open the http link: http://127.0.0.1:8000/
 
+### Changing parameters:
+
+You can change the parameters of the tracker by editing KCF_config.yml located at annotator/KCFtracker.
