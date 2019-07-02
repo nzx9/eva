@@ -161,7 +161,7 @@ class KCFTracker:
         return fftd(res)
 
     def gaussianCorrelation(self, x1, x2):
-        ###The gaussian kernel function
+        # The gaussian kernel function
         if (self._hogfeatures):
             c = np.zeros((int(self.size_patch[0]), int(self.size_patch[1]), 2), np.float32)
             for i in range(int(self.size_patch[2])):
@@ -324,6 +324,4 @@ class KCFTracker:
         # print(peak_value)
         x = self.getFeatures(image, 0, 1.0)
         self.train(x, self.interp_factor)
-        ###It should return true whether it has kept track of the object or not,
-        ### however at this moment it can't know if it has lost track or not so it just returns true
         return True, self._roi
