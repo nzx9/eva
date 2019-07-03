@@ -6,6 +6,8 @@ sequences. It is a re-design of BeaverDam with additional
 tracking capabilities. The annotation is done on a bounding box level and
 the labels can be exported in YOLO or Pascal VOC format.
 
+<img src="https://github.com/Ericsson/eva/raw/master/annotator/static/img/eva.gif" style="display:block;margin-left:auto;margin-right:auto;">
+
 
 ## Setup
 ### Windows:
