@@ -1,8 +1,3 @@
-import numpy as np
-import cv2
-from time import time
-from datetime import datetime
-
 from .fhog import *
 from .yamlConfigHandling import load_config
 
@@ -49,19 +44,19 @@ def y2(rect):
 
 
 def limit(rect, limit):
-    if (rect[0] + rect[2] > limit[0] + limit[2]):
+    if rect[0] + rect[2] > limit[0] + limit[2]:
         rect[2] = limit[0] + limit[2] - rect[0]
-    if (rect[1] + rect[3] > limit[1] + limit[3]):
+    if rect[1] + rect[3] > limit[1] + limit[3]:
         rect[3] = limit[1] + limit[3] - rect[1]
-    if (rect[0] < limit[0]):
+    if rect[0] < limit[0]:
         rect[2] -= (limit[0] - rect[0])
         rect[0] = limit[0]
-    if (rect[1] < limit[1]):
+    if rect[1] < limit[1]:
         rect[3] -= (limit[1] - rect[1])
         rect[1] = limit[1]
-    if (rect[2] < 0):
+    if rect[2] < 0:
         rect[2] = 0
-    if (rect[3] < 0):
+    if rect[3] < 0:
         rect[3] = 0
     return rect
 
@@ -83,7 +78,7 @@ def subwindow(img, window, borderType=cv2.BORDER_CONSTANT):
     border = getBorder(window, cutWindow)
     res = img[cutWindow[1]:cutWindow[1] + cutWindow[3], cutWindow[0]:cutWindow[0] + cutWindow[2]]
 
-    if (border != [0, 0, 0, 0]):
+    if border != [0, 0, 0, 0]:
         res = cv2.copyMakeBorder(res, border[1], border[3], border[0], border[2], borderType)
     return res
 
@@ -97,7 +92,7 @@ class KCFTracker:
         self.output_sigma_factor = config['output_sigma_factor']  # bandwidth of gaussian target
         self.detect_threshold = config['detect_threshold']
         self.detect_threshold_interp = config['detect_threshold_interp']
-        if (hog):  # HOG feature
+        if hog:  # HOG feature
             # VOT
             self.interp_factor = config['interp_factor_hog']  # linear interpolation factor for adaptation
             self.sigma = config['sigma_hog']  # gaussian kernel bandwidth
@@ -110,12 +105,12 @@ class KCFTracker:
             self.cell_size = config['cell_size_grey_scale']
             self._hogfeatures = False
 
-        if (multiscale):
+        if multiscale:
             self.template_size = config['template_size_multiscale']  # template size
             self.scale_step = config['scale_step_multiscale']  # scale step for multi-scale estimation
             self.scale_weight = config[
                 'scale_weight_multiscale']  # to downweight detection scores of other scales for added stability
-        elif (fixed_window):
+        elif fixed_window:
             self.template_size = config['template_size_fixed_window']
             self.scale_step = config['scale_step_fixed_window']
         else:
@@ -129,14 +124,16 @@ class KCFTracker:
         self._scale = 1.  # float
         self._alphaf = None  # numpy.ndarray    (size_patch[0], size_patch[1], 2)
         self._prob = None  # numpy.ndarray    (size_patch[0], size_patch[1], 2)
-        self._template = None  # numpy.ndarray    raw: (size_patch[0], size_patch[1])   hog: (size_patch[2], size_patch[0]*size_patch[1])
-        self.hann = None  # numpy.ndarray    raw: (size_patch[0], size_patch[1])   hog: (size_patch[2], size_patch[0]*size_patch[1])
-
+        self._template = None  # numpy.ndarray    raw: (size_patch[0], size_patch[1])
+        # hog: (size_patch[2], size_patch[0]*size_patch[1])
+        self.hann = None  # numpy.ndarray    raw: (size_patch[0], size_patch[1])
+        # hog: (size_patch[2], size_patch[0]*size_patch[1])
+        self._initPeak = None
         self.tt = 0.04
 
     def subPixelPeak(self, left, center, right):
         divisor = 2 * center - right - left  # float
-        return (0 if abs(divisor) < 1e-3 else 0.5 * (right - left) / divisor)
+        return 0 if abs(divisor) < 1e-3 else 0.5 * (right - left) / divisor
 
     def createHanningMats(self):
         hann2t, hann1t = np.ogrid[0:int(self.size_patch[0]), 0:int(self.size_patch[1])]
@@ -144,7 +141,7 @@ class KCFTracker:
         hann2t = 0.5 * (1 - np.cos(2 * np.pi * hann2t / (self.size_patch[0] - 1)))
         hann2d = hann2t * hann1t
 
-        if (self._hogfeatures):
+        if self._hogfeatures:
             hann1d = hann2d.reshape(int(self.size_patch[0] * self.size_patch[1]))
             self.hann = np.zeros((int(self.size_patch[2]), 1), np.float32) + hann1d
         else:
@@ -162,7 +159,7 @@ class KCFTracker:
 
     def gaussianCorrelation(self, x1, x2):
         # The gaussian kernel function
-        if (self._hogfeatures):
+        if self._hogfeatures:
             c = np.zeros((int(self.size_patch[0]), int(self.size_patch[1]), 2), np.float32)
             for i in range(int(self.size_patch[2])):
                 x1aux = x1[i, :].reshape((int(self.size_patch[0]), int(self.size_patch[1])))
@@ -174,10 +171,10 @@ class KCFTracker:
             c = cv2.mulSpectrums(fftd(x1), fftd(x2), 0, conjB=True)  # 'conjB=' is necessary!
             c = real(cv2.idft(c, flags=(cv2.DFT_SCALE)))
 
-        if (x1.ndim == 3 and x2.ndim == 3):
+        if x1.ndim == 3 and x2.ndim == 3:
             d = (np.sum(x1[:, :, 0] * x1[:, :, 0]) + np.sum(x2[:, :, 0] * x2[:, :, 0]) - 2.0 * c) / (
                     self.size_patch[0] * self.size_patch[1] * self.size_patch[2])
-        elif (x1.ndim == 2 and x2.ndim == 2):
+        elif x1.ndim == 2 and x2.ndim == 2:
             d = (np.sum(x1 ** 2) + np.sum(x2 ** 2) - 2.0 * c) / (
                         self.size_patch[0] * self.size_patch[1] * self.size_patch[2])
 
@@ -191,12 +188,12 @@ class KCFTracker:
         cx = self._roi[0] + self._roi[2] / 2  # float
         cy = self._roi[1] + self._roi[3] / 2  # float
 
-        if (inithann):
+        if inithann:
             padded_width = self._roi[2] * self.padding
             padded_height = self._roi[3] * self.padding
 
-            if (self.template_size > 1):
-                if (padded_width >= padded_height):
+            if self.template_size > 1:
+                if padded_width >= padded_height:
                     self._scale = padded_width / float(self.template_size)
                 else:
                     self._scale = padded_height / float(self.template_size)
@@ -207,7 +204,7 @@ class KCFTracker:
                 self._template_size[1] = int(padded_height)
                 self._scale = 1.
 
-            if (self._hogfeatures):
+            if self._hogfeatures:
                 self._template_size[0] = int(
                     self._template_size[0] / (2 * self.cell_size) * 2 * self.cell_size + 2 * self.cell_size)
                 self._template_size[1] = int(
@@ -222,9 +219,9 @@ class KCFTracker:
         extracted_roi[1] = int(cy - extracted_roi[3] / 2)
 
         boxImage = subwindow(image, extracted_roi, cv2.BORDER_REPLICATE)
-        if (boxImage.shape[1] != self._template_size[0] or boxImage.shape[0] != self._template_size[1]):
+        if boxImage.shape[1] != self._template_size[0] or boxImage.shape[0] != self._template_size[1]:
             boxImage = cv2.resize(boxImage, tuple(self._template_size))
-        if (self._hogfeatures):
+        if self._hogfeatures:
             featureMap = {'sizeX': 0, 'sizeY': 0, 'numFeatures': 0, 'map': 0}
             featureMap = getFeatureMaps(boxImage, self.cell_size, featureMap)  # Create the hog-feature map
             featureMap = normalizeAndTruncate(featureMap, 0.2)  # creates normalized features and truncates the map
@@ -234,15 +231,15 @@ class KCFTracker:
             finalFeaturesMap = featureMap['map'].reshape((int(self.size_patch[0] * self.size_patch[1]), int(
                 self.size_patch[2]))).T  # (size_patch[2], size_patch[0]*size_patch[1])
         else:
-            if (boxImage.ndim == 3 and boxImage.shape[2] == 3):
-                finalFeaturesMap = cv2.cvtColor(boxImage,
-                                                cv2.COLOR_BGR2GRAY)  # boxImage:(size_patch[0], size_patch[1], 3)  FeaturesMap:(size_patch[0], size_patch[1])   #np.int8  #0~255
-            elif (boxImage.ndim == 2):
+            if boxImage.ndim == 3 and boxImage.shape[2] == 3:
+                finalFeaturesMap = cv2.cvtColor(boxImage, cv2.COLOR_BGR2GRAY)  # boxImage:(size_patch[0],
+                # size_patch[1], 3)  FeaturesMap:(size_patch[0], size_patch[1])   #np.int8  #0~255
+            elif boxImage.ndim == 2:
                 finalFeaturesMap = boxImage  # (size_patch[0], size_patch[1]) #np.int8  #0~255
             finalFeaturesMap = finalFeaturesMap.astype(np.float32) / 255.0 - 0.5
             self.size_patch = [boxImage.shape[0], boxImage.shape[1], 1]
 
-        if (inithann):
+        if inithann:
             self.createHanningMats()  # createHanningMats need size_patch
 
         finalFeaturesMap = self.hann * finalFeaturesMap
@@ -255,9 +252,9 @@ class KCFTracker:
         _, pv, _, pi = cv2.minMaxLoc(res)  # pv:float  pi:tuple of int
         p = [float(pi[0]), float(pi[1])]  # cv::Point2f, [x,y]  #[float,float]
 
-        if (pi[0] > 0 and pi[0] < res.shape[1] - 1):
+        if (pi[0] > 0) and pi[0] < res.shape[1] - 1:
             p[0] += self.subPixelPeak(res[pi[1], pi[0] - 1], pv, res[pi[1], pi[0] + 1])
-        if (pi[1] > 0 and pi[1] < res.shape[0] - 1):
+        if (pi[1] > 0) and pi[1] < res.shape[0] - 1:
             p[1] += self.subPixelPeak(res[pi[1] - 1, pi[0]], pv, res[pi[1] + 1, pi[0]])
 
         p[0] -= res.shape[1] / 2.
@@ -281,27 +278,27 @@ class KCFTracker:
         _, self._initPeak = self.detect(self._template, self.getFeatures(image, 0, 1.0 / self.scale_step))
 
     def update(self, image):
-        if (self._roi[0] + self._roi[2] <= 0):  self._roi[0] = -self._roi[2] + 1
-        if (self._roi[1] + self._roi[3] <= 0):  self._roi[1] = -self._roi[2] + 1
-        if (self._roi[0] >= image.shape[1] - 1):  self._roi[0] = image.shape[1] - 2
-        if (self._roi[1] >= image.shape[0] - 1):  self._roi[1] = image.shape[0] - 2
+        if self._roi[0] + self._roi[2] <= 0:  self._roi[0] = -self._roi[2] + 1
+        if self._roi[1] + self._roi[3] <= 0:  self._roi[1] = -self._roi[2] + 1
+        if self._roi[0] >= image.shape[1] - 1:  self._roi[0] = image.shape[1] - 2
+        if self._roi[1] >= image.shape[0] - 1:  self._roi[1] = image.shape[0] - 2
 
         cx = self._roi[0] + self._roi[2] / 2.
         cy = self._roi[1] + self._roi[3] / 2.
         loc, peak_value = self.detect(self._template, self.getFeatures(image, 0, 1.0))
-        if (self.scale_step != 1):
+        if self.scale_step != 1:
             # Test at a smaller _scale
             new_loc1, new_peak_value1 = self.detect(self._template, self.getFeatures(image, 0, 1.0 / self.scale_step))
             # Test at a bigger _scale
             new_loc2, new_peak_value2 = self.detect(self._template, self.getFeatures(image, 0, self.scale_step))
 
-            if (self.scale_weight * new_peak_value1 > peak_value and new_peak_value1 > new_peak_value2):
+            if self.scale_weight * new_peak_value1 > peak_value and new_peak_value1 > new_peak_value2:
                 loc = new_loc1
                 peak_value = new_peak_value1
                 self._scale /= self.scale_step
                 self._roi[2] /= self.scale_step
                 self._roi[3] /= self.scale_step
-            elif (self.scale_weight * new_peak_value2 > peak_value):
+            elif self.scale_weight * new_peak_value2 > peak_value:
                 loc = new_loc2
                 peak_value = new_peak_value2
                 self._scale *= self.scale_step
@@ -310,18 +307,16 @@ class KCFTracker:
 
         self._roi[0] = cx - self._roi[2] / 2.0 + loc[0] * self.cell_size * self._scale
         self._roi[1] = cy - self._roi[3] / 2.0 + loc[1] * self.cell_size * self._scale
-        if (self._roi[0] >= image.shape[1] - 1):  self._roi[0] = image.shape[1] - 1
-        if (self._roi[1] >= image.shape[0] - 1):  self._roi[1] = image.shape[0] - 1
-        if (self._roi[0] + self._roi[2] <= 0):  self._roi[0] = -self._roi[2] + 2
-        if (self._roi[1] + self._roi[3] <= 0):  self._roi[1] = -self._roi[3] + 2
+        if self._roi[0] >= image.shape[1] - 1:  self._roi[0] = image.shape[1] - 1
+        if self._roi[1] >= image.shape[0] - 1:  self._roi[1] = image.shape[0] - 1
+        if self._roi[0] + self._roi[2] <= 0:  self._roi[0] = -self._roi[2] + 2
+        if self._roi[1] + self._roi[3] <= 0:  self._roi[1] = -self._roi[3] + 2
         assert (self._roi[2] > 0 and self._roi[3] > 0)
-        # print(self._initPeak)
-        if (peak_value < self.detect_threshold * self._initPeak):
+        if peak_value < self.detect_threshold * self._initPeak:
             return False, self._roi
         else:
             self._initPeak = self.detect_threshold_interp * peak_value + (
                         1 - self.detect_threshold_interp) * self._initPeak
-        # print(peak_value)
         x = self.getFeatures(image, 0, 1.0)
         self.train(x, self.interp_factor)
         return True, self._roi

@@ -1,12 +1,15 @@
 from django.core.management.base import BaseCommand, CommandError
 import annotator.KCFtracker.fhog_utils as fhog
-import os, sys
+import os
+import sys
 my_path = 'annotator/KCFtracker'
+
+
 class Command(BaseCommand):
     help = 'Compiles the fhog_utils to be used in cpp through numba'
 
     def handle(self, *args, **options):
-        if (sys.argv[1] == "compileFhog"):
+        if sys.argv[1] == "compileFhog":
             try:
                 fhog.compile_cc()
             except AttributeError:
@@ -16,3 +19,4 @@ class Command(BaseCommand):
                           "delete the fhog_utils-file which doesn't end with .py")
                 else:
                     print("Unknown AttributeError")
+

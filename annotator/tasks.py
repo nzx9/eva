@@ -27,6 +27,8 @@ from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 config = load_config(os.getcwd() + '/annotator/KCFtracker/KCF_config.yml')
 tracker = KCFTracker(config['hog'], config['fixed_window'], config['multiscale'])
+
+
 class TrackerError(Exception):
     pass
 
@@ -186,6 +188,7 @@ def extract_frames(video_id):
 
     return video_id
 
+
 def parse_annotations(annotation):
     labels = {}
     for track in json.loads(annotation):
@@ -195,6 +198,7 @@ def parse_annotations(annotation):
             val.update({'class': class_})
             labels.setdefault(frame['frame'], []).append(val)
     return labels
+
 
 def convert_to_darknet(video):
     result = {}
@@ -229,6 +233,7 @@ def convert_to_darknet(video):
             result.update({filename: text})
     return result
 
+
 def indent(elem, level=0):
     "See https://stackoverflow.com/questions/749796/pretty-printing-xml-in-python"
     i = "\n" + level*"  "
@@ -244,6 +249,7 @@ def indent(elem, level=0):
     else:
         if level and (not elem.tail or not elem.tail.strip()):
             elem.tail = i
+
 
 def convert_to_pascal_voc(video):
     result = {}
@@ -293,7 +299,8 @@ def convert_to_pascal_voc(video):
                 text = ''
             result.update({filename: text})
     return result
-    
+
+
 @shared_task
 def create_zipfile(video_id):
     video = Video.objects.get(id=video_id)
@@ -311,6 +318,7 @@ def create_zipfile(video_id):
 
     return video_id
 
+
 @shared_task
 def clean_zipfiles():
     files = os.listdir(settings.ZIPFILE_ROOT)
@@ -323,6 +331,7 @@ def clean_zipfiles():
             os.remove(file)
         except FileNotFoundError:
             pass
+
 
 def collect_images(video_id):
     video = Video.objects.get(id=video_id)
