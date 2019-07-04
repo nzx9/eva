@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 import math
-from .fhog_utils import mapPointsToBins, aggregateToHOGFeatureMap, createNormalizedFeatures, hogPCA
+from .fhog_utils import map_points_to_bins, aggregate_to_hog_feature_map, create_normalized_features, hog_pca
 
 # constant
 NUM_SECTOR = 9
@@ -9,7 +9,7 @@ FLT_EPSILON = 0.0000001  # To not have division by zero
 
 
 # This is file involves functions used to compute histogram of oriented gradients
-def getFeatureMaps(image, cellSize, featuresMap):
+def get_feature_maps(image, cellSize, featuresMap):
     """Here we compute the edge convolution in x and y direction, with interval k in x and y direction.
     By using the interval k we limit the accuracy of the edge detection but it saves time.
     In our current usage of the function the k is the cell size"""
@@ -40,7 +40,7 @@ def getFeatureMaps(image, cellSize, featuresMap):
     to calculate the bin-value(for the histogram), where r is the radians """
     r = np.zeros((height, width), np.float32)  # The radians
     alpha = np.zeros((height, width, 2), np.int64)  # Will be the directions in which the maximum gradient was found
-    mapPointsToBins(dx, dy, boundary_x, boundary_y, r, alpha, height, width, numChannels)  # with @jit
+    map_points_to_bins(dx, dy, boundary_x, boundary_y, r, alpha, height, width, numChannels)  # with @jit
     # ~0.001s
     nearestCell = np.ones(cellSize, np.int64)
     nearestCell[0:math.floor(cellSize / 2)] = -1
@@ -57,7 +57,7 @@ def getFeatureMaps(image, cellSize, featuresMap):
 
     # Here we compute the actual HOG-features, by using the weights to sum up the values for each bin  for each cell.
     temporaryFeaturesMap = np.zeros(cellsAmountXDirection * cellsAmountYDirection * amountOfOrientationBins, np.float32)
-    aggregateToHOGFeatureMap(temporaryFeaturesMap, r, alpha, nearestCell, cellWeights, cellSize, height, width,
+    aggregate_to_hog_feature_map(temporaryFeaturesMap, r, alpha, nearestCell, cellWeights, cellSize, height, width,
                              cellsAmountXDirection, cellsAmountYDirection, amountOfOrientationBins, rowSize)
     featuresMap['map'] = temporaryFeaturesMap
     # ~0.001s
@@ -65,7 +65,7 @@ def getFeatureMaps(image, cellSize, featuresMap):
     return featuresMap
 
 
-def normalizeAndTruncate(featureMap, alpha):
+def normalize_and_truncate(featureMap, alpha):
     cellsAmountXDirection = featureMap['sizeX']
     cellsAmountYDirection = featureMap['sizeY']
     numChannels = 3
@@ -83,7 +83,7 @@ def normalizeAndTruncate(featureMap, alpha):
     cellsAmountXDirection, cellsAmountYDirection = cellsAmountXDirection - 2, cellsAmountYDirection - 2
 
     newData = np.zeros(cellsAmountYDirection * cellsAmountXDirection * totalAmountOfFeaturesPerCell, np.float32)
-    createNormalizedFeatures(newData, partOfNorm, featureMap['map'], cellsAmountXDirection, cellsAmountYDirection,
+    create_normalized_features(newData, partOfNorm, featureMap['map'], cellsAmountXDirection, cellsAmountYDirection,
                              amountOfOrientationBinsPerChannel, amountOfOrientationBins,
                              totalAmountOfFeaturesPerCell)  # with @jit
 
@@ -98,7 +98,7 @@ def normalizeAndTruncate(featureMap, alpha):
     return featureMap
 
 
-def PCAFeatureMaps(featureMap):
+def pca_feature_maps(featureMap):
     cellsAmountXDirection = featureMap['sizeX']
     cellsAmountYDirection = featureMap['sizeY']
 
@@ -112,7 +112,7 @@ def PCAFeatureMaps(featureMap):
     ny = 1.0 / np.sqrt(normalizationFeatures)
 
     newData = np.zeros(cellsAmountXDirection * cellsAmountYDirection * newAmountOfFeatures, np.float32)
-    hogPCA(newData, featureMap['map'], totalAmountOfFeaturesPerCell, cellsAmountXDirection, cellsAmountYDirection,
+    hog_pca(newData, featureMap['map'], totalAmountOfFeaturesPerCell, cellsAmountXDirection, cellsAmountYDirection,
            newAmountOfFeatures, normalizationFeatures, amountOfBinsPerChannel, nx, ny)  # with @jit
 
     featureMap['numFeatures'] = newAmountOfFeatures
