@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 import annotator.KCFtracker.fhog_utils as fhog
-import os, sys
+import os
+import sys
 my_path = 'annotator/KCFtracker'
 class Command(BaseCommand):
     help = 'Compiles the fhog_utils file to be used in cpp through numba'
