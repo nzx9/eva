@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt \
 
 COPY . /app/
 RUN mv /app/eva/deploy_settings /app/eva/deploy_settings.py
-RUN python manage.py compileFhog
+RUN python manage.py preparetracker
 
 EXPOSE 8000
 
