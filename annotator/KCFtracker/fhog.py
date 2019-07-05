@@ -9,16 +9,18 @@ FLT_EPSILON = 0.0000001  # To not have division by zero
 
 
 # This is file involves functions used to compute histogram of oriented gradients
-def get_feature_maps(image, cell_size, feature_map):
+def get_feature_maps(box_image, cell_size, feature_map):
     """Here we compute the edge convolution in x and y direction, with interval k in x and y direction.
     By using the interval k we limit the accuracy of the edge detection but it saves time.
     In our current usage of the function the k is the cell size"""
     kernel = np.array([[-1., 0., 1.]], np.float32)
 
-    height = image.shape[0]
-    width = image.shape[1]
-    assert (image.ndim == 3 and image.shape[2])
-    num_channels = 3  # (1 if image.ndim==2 else image.shape[2])
+    height = box_image.shape[0]
+    width = box_image.shape[1]
+    print("Height is: {}".format(height))
+    print("Width is: {}".format(width))
+    assert (box_image.ndim == 3 and box_image.shape[2])
+    num_channels = 3  # (1 if box_image.ndim==2 else box_image.shape[2])
 
     cells_amount_direction_x = int(width / cell_size)
     cells_amount_direction_y = int(height / cell_size)
@@ -30,8 +32,8 @@ def get_feature_maps(image, cell_size, feature_map):
     feature_map['map'] = np.zeros(feature_map['sizeX'] * feature_map['sizeY'] * feature_map['numFeatures'], np.float32)
 
     # Computing the gradients
-    dx = cv2.filter2D(np.float32(image), -1, kernel)  # np.float32(...) is necessary #Detecting edges in x-direction
-    dy = cv2.filter2D(np.float32(image), -1, kernel.T)  # detecting edges in y-direction
+    dx = cv2.filter2D(np.float32(box_image), -1, kernel)  # np.float32(...) is necessary #Detecting edges in x-direction
+    dy = cv2.filter2D(np.float32(box_image), -1, kernel.T)  # detecting edges in y-direction
     arg_vector = np.arange(NUM_SECTOR + 1).astype(np.float32) * np.pi / NUM_SECTOR
     boundary_x = np.cos(arg_vector)  # The orientations value in x-axis(as vectors)
     boundary_y = np.sin(arg_vector)  # The orientations value in y-axis(as vectors)

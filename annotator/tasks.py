@@ -88,6 +88,7 @@ def scale_box(box, scale):
 
 @shared_task
 def create_cache_task(video_id):
+    logger.info("went to create cache")
     video = Video.objects.get(id=video_id)
 
     if not (video.cache_file and os.path.isfile(video.cache_file)):
@@ -102,36 +103,42 @@ def create_cache_task(video_id):
         height = img.shape[0]
         width = img.shape[1]
 
-        scale = min(((360*640)/(height*width))**0.5, 1)
+        scale = min(((360 * 640) / (height * width)) ** 0.5, 1)
 
-        new_size = (int(round(width*scale)), int(round(height*scale)))
+        new_size = (int(round(width * scale)), int(round(height * scale)))
 
         logger.info('Resizing ({}, {}) to {}'.format(width, height, new_size))
-
-        images = []
-        for file in files:
-            img = cv2.imread(file)
-            img = cv2.resize(img, new_size, interpolation=cv2.INTER_CUBIC)
-            images.append(img)
 
         path = os.path.join(settings.MEDIA_ROOT, 'cache')
         os.makedirs(path, exist_ok=True)
         cache_file_path = os.path.join(path, str(uuid.uuid4()) + '.hd5')
 
         hdf5_file = h5py.File(cache_file_path, 'w')
-
-        height = images[0].shape[0]
-        width = images[0].shape[1]
-        channels = images[0].shape[2]
+        img = cv2.resize(img, new_size, interpolation=cv2.INTER_CUBIC)
+        height = img.shape[0]
+        width = img.shape[1]
+        channels = img.shape[2]
 
         hdf5_file.create_dataset(
             'img', (len(files), height, width, channels), np.uint8)
         hdf5_file.create_dataset('scale', (1,), np.float32)
 
         hdf5_file['scale'][0] = scale
-
-        for i, img in enumerate(images):
-            hdf5_file['img'][i, ...] = img[None]
+        file_amount = len(files)
+        # Let's partition the work into batches to avoid memory issues
+        batch_size = 100
+        for batch_index in range(0, math.ceil(file_amount / batch_size)):
+            start_index = batch_index * batch_size
+            end_index = min((batch_index + 1) * batch_size, file_amount)
+            images = list()
+            if end_index == file_amount:
+                end_index = file_amount + 1
+            for file in files[start_index:end_index - 1]:
+                img = cv2.imread(file)
+                img = cv2.resize(img, new_size, interpolation=cv2.INTER_CUBIC)
+                images.append(img)
+            for k, img in enumerate(images):
+                hdf5_file['img'][start_index + k, ...] = img[None]
 
         hdf5_file.close()
         video = Video.objects.get(id=video_id)
@@ -323,7 +330,7 @@ def create_zipfile(video_id):
 def clean_zipfiles():
     files = os.listdir(settings.ZIPFILE_ROOT)
     files = [os.path.join(settings.ZIPFILE_ROOT, x) for x in files if x.endswith('zip')]
-    files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+    files.sort(key=lambda k: os.path.getmtime(k), reverse=True)
     files = files[settings.MAX_ZIPFILES:]
     for file in files:
         logger.debug('Deleting {}'.format(file))
