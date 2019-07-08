@@ -6,9 +6,9 @@ import argparse
 
 import h5py
 
-import KCFtracker # pylint: disable=import-error
+import kcftracker # pylint: disable=import-error
 
-PACKAGE_PATH = os.path.dirname(KCFtracker.__file__)
+PACKAGE_PATH = os.path.dirname(kcftracker.__file__)
 CONFIG_PATH = os.path.join(PACKAGE_PATH, 'KCF_config.yml')
 
 def compile_tracker(args):  # pylint: disable=unused-argument
@@ -18,8 +18,8 @@ def compile_tracker(args):  # pylint: disable=unused-argument
 
 def run_tracker(args):
     "Runs the tracker on the given cache file."
-    tracker_config = KCFtracker.load_config(CONFIG_PATH)
-    tracker = KCFtracker.KCFTracker(tracker_config)
+    tracker_config = kcftracker.load_config(CONFIG_PATH)
+    tracker = kcftracker.KCFTracker(tracker_config)
     hdf5_file = h5py.File(args.cache_file, 'r')
     # The input image was scaled during cache creation
     global_scale = hdf5_file['scale'][0]
