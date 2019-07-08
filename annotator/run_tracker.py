@@ -6,41 +6,20 @@ import argparse
 
 import h5py
 
-from KCFtracker import kcftracker, fhog_utils  # pylint: disable=import-error
-from KCFtracker.yamlConfigHandling import load_config  # pylint: disable=import-error
+import KCFtracker # pylint: disable=import-error
 
-PACKAGE_PATH = os.path.dirname(fhog_utils.__file__)
+PACKAGE_PATH = os.path.dirname(KCFtracker.__file__)
 CONFIG_PATH = os.path.join(PACKAGE_PATH, 'KCF_config.yml')
-
 
 def compile_tracker(args):  # pylint: disable=unused-argument
     "Compiles the tracker, making it significantly faster."
-    try:
-        fhog_utils.compile_cc()
-    except AttributeError:
-        fhog_utils_files = [
-            f for f in os.listdir(PACKAGE_PATH)
-            if f.startswith('fhog_utils.')
-            and os.path.isfile(os.path.join(PACKAGE_PATH, f))]
-        is_compiled = len(fhog_utils_files) > 1
-        if is_compiled:
-            print("It appears to be that fhog has already been compiled.\n"
-                  "To compile again, you need to "
-                  "delete the fhog_utils-file which doesn't end with .py")
-        else:
-            print("Unknown AttributeError while trying to compile fhog.")
-            return 1
+    KCFtracker.compile_fhog()
     return 0
-
 
 def run_tracker(args):
     "Runs the tracker on the given cache file."
-    tracker_config = load_config(CONFIG_PATH)
-    tracker = kcftracker.KCFTracker(
-        tracker_config['hog'],
-        tracker_config['fixed_window'],
-        tracker_config['multiscale']
-    )
+    tracker_config = KCFtracker.load_config(CONFIG_PATH)
+    tracker = KCFtracker.KCFTracker(tracker_config)
     hdf5_file = h5py.File(args.cache_file, 'r')
     # The input image was scaled during cache creation
     global_scale = hdf5_file['scale'][0]

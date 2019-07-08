@@ -20,30 +20,23 @@ from .models import Video, UploadFile, LabelMapping
 from celery import shared_task
 from django.conf import settings
 from .utils import *
-from .KCFtracker.kcftracker import *
-from .KCFtracker.yamlConfigHandling import load_config
+from . import KCFtracker
 
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
-config = load_config(os.getcwd() + '/annotator/KCFtracker/KCF_config.yml')
-tracker = KCFTracker(config['hog'], config['fixed_window'], config['multiscale'])
-
 
 class TrackerError(Exception):
     pass
 
-
 class VideoError(Exception):
     pass
-
 
 @shared_task
 def tracker_task(video_id, frame_no, bbox):
     video = Video.objects.get(id=video_id)
 
-    # Changes settings of the tracker
-    fs_read = cv2.FileStorage(settings.TRACKER_SETTINGS, cv2.FILE_STORAGE_READ)
-    fs_read.release()
+    config = KCFtracker.load_config(settings.TRACKER_SETTINGS)
+    tracker = KCFtracker.KCFTracker(config)
 
     hdf5_file = h5py.File(video.cache_file, 'r')
 

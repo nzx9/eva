@@ -85,8 +85,10 @@ def subwindow(img, window, border_type=cv2.BORDER_CONSTANT):
 
 # KCF tracker
 class KCFTracker:
-    def __init__(self, hog=False, fixed_window=False, multiscale=False):
-        config = load_config('annotator/KCFtracker/KCF_config.yml')
+    def __init__(self, config):
+        hog = config['hog']
+        fixed_window = config['fixed_window']
+        multiscale = config['multiscale']
         self.lambdar = config['lambdar']  # regularization
         self.padding = config['padding']  # extra area surrounding the target
         self.output_sigma_factor = config['output_sigma_factor']  # bandwidth of gaussian target

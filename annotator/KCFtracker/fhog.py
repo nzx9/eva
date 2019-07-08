@@ -7,6 +7,20 @@ from .fhog_utils import map_points_to_bins, aggregate_to_hog_feature_map, create
 NUM_SECTOR = 9
 FLT_EPSILON = 0.0000001  # To not have division by zero
 
+def compile_fhog():
+    import glob
+    import os
+    try:
+        from .fhog_utils import cc
+        cc.compile()
+        print('Done')
+    except ImportError:
+        path = os.path.dirname(__file__)
+        files = [glob.glob(os.path.join(path, 'fhog_utils.*.' + x)) for x in ['pyd', 'so']]
+        for file in files:
+            if file:
+                print('Tracker is ready.')
+                print('To re-compile the tracker, remove "{}" and try again.'.format(file[0]))
 
 # This is file involves functions used to compute histogram of oriented gradients
 def get_feature_maps(box_image, cell_size, feature_map):
@@ -17,8 +31,8 @@ def get_feature_maps(box_image, cell_size, feature_map):
 
     height = box_image.shape[0]
     width = box_image.shape[1]
-    print("Height is: {}".format(height))
-    print("Width is: {}".format(width))
+    #print("Height is: {}".format(height))
+    #print("Width is: {}".format(width))
     assert (box_image.ndim == 3 and box_image.shape[2])
     num_channels = 3  # (1 if box_image.ndim==2 else box_image.shape[2])
 
