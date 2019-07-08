@@ -20,7 +20,7 @@ from .models import Video, UploadFile, LabelMapping
 from celery import shared_task
 from django.conf import settings
 from .utils import *
-from . import kcftracker
+from .KCFtracker import kcftracker
 
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
@@ -120,13 +120,13 @@ def create_cache_task(video_id):
         file_amount = len(files)
         # Let's partition the work into batches to avoid memory issues
         batch_size = 100
-        for batch_index in range(0, math.ceil(file_amount / batch_size)):
+        for batch_index in range(0, round(file_amount / batch_size)):
             start_index = batch_index * batch_size
-            end_index = min((batch_index + 1) * batch_size, file_amount)
+            end_index = min((batch_index + 1) * batch_size, file_amount) - 1
             images = list()
-            if end_index == file_amount:
-                end_index = file_amount + 1
-            for file in files[start_index:end_index - 1]:
+            if file_amount - end_index < batch_size / 2:
+                end_index = file_amount
+            for file in files[start_index:end_index]:
                 img = cv2.imread(file)
                 img = cv2.resize(img, new_size, interpolation=cv2.INTER_CUBIC)
                 images.append(img)
