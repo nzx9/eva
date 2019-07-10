@@ -13,7 +13,7 @@ CONFIG_PATH = os.path.join(PACKAGE_PATH, 'KCF_config.yml')
 
 def compile_tracker(args):  # pylint: disable=unused-argument
     "Compiles the tracker, making it significantly faster."
-    KCFtracker.compile_fhog()
+    kcftracker.compile_fhog()
     return 0
 
 def run_tracker(args):
