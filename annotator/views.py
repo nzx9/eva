@@ -15,6 +15,7 @@ from django.db.models import Max
 from django.http import JsonResponse
 from celery.result import AsyncResult
 from celery import chain
+from celery import states as task_states
 from django.conf import settings
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -587,8 +588,14 @@ class ProjectSelect(View):
 
 
 def is_task_running(task_id):
-    res = AsyncResult(task_id).status == 'STARTED'
+    res = AsyncResult(task_id).status == task_states.STARTED
     logger.debug('Task running: {}'.format(res))
+    return res
+
+
+def is_task_pending(task_id):
+    res = AsyncResult(task_id).status == task_states.PENDING
+    logger.debug('Task pending: {}'.format(res))
     return res
 
 
@@ -646,7 +653,7 @@ class VideoStatus(View):
             video = Video.objects.get(id=id)
             for task_id in [video.extract_task_id, video.cache_task_id]:
                 if task_id:
-                    if is_task_running(task_id):
+                    if is_task_running(task_id) or is_task_pending(task_id):
                         resp['status'] = 'wait'
                         break
                     elif task_failed(task_id):
