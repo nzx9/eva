@@ -122,7 +122,7 @@ def create_cache_task(video_id):
         batch_size = 100
         for batch_index in range(0, round(file_amount / batch_size)):
             start_index = batch_index * batch_size
-            end_index = min((batch_index + 1) * batch_size, file_amount) - 1
+            end_index = min((batch_index + 1) * batch_size, file_amount)
             images = list()
             if file_amount - end_index < batch_size / 2:
                 end_index = file_amount
