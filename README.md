@@ -16,7 +16,7 @@ Requirements:
 * Redis: https://github.com/MicrosoftArchive/redis/releases/download/win-3.2.100/Redis-x64-3.2.100.msi
 * Browser: Google-Chrome Version > 49.0, Firefox Version > 45.0
 * FFMPEG (optional for video upload): https://ffmpeg.zeranoe.com/builds/
-* Microsoft Visual Studio: https://visualstudio.microsoft.com/downloads/ (to have a cpp-compiler)
+* Microsoft Visual Studio 2015 or later version: https://visualstudio.microsoft.com/downloads/ (to have a cpp-compiler)
 
 Install:
 ```powershell
