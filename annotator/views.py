@@ -107,11 +107,19 @@ class VideoView(View):
 
         first, last, start_of_slice, end_of_slice = self.get_video_slice(video_index, length_image_list)
         video_slice = slice(start_of_slice, end_of_slice)
-        video_chunk = video.image_list[video_slice]
+        video_chunk = []
+        video_dimension = []
+        for img in video.image_list[video_slice]:
+            video_chunk.append(img[0])
+            if img[1] and img[2]:
+                video_dimension.append([img[1], img[2]])  # append width, height of each image
+            else:
+                video_dimension.append([video.width, video.height])  # video object still has width and height
         # Data for python templating
         response = render(request, 'video.html', context={
             'label_data': label_data,
             'video_data': video_data,
+            'image_list_dimensions': video_dimension,
             'image_list': video_chunk if video.image_list else 0,
             'image_list_path': '',
             'help_embed': True,
@@ -272,9 +280,12 @@ class UploadVideos(View):
             if error:
                 file_list[0]['error'] = error
             else:
+                img_dimension = get_img_size_from_buffer(file)
                 file_db = UploadFile.objects.create()
                 file_db.video = video
                 file_db.file = file
+                file_db.width = img_dimension[1]
+                file_db.height = img_dimension[0]
                 if file.content_type in ['video/mp4', 'video/quicktime', 'video/avi']:
                     file_db.file_type = UploadFile.VIDEO
                     if not settings.FFMPEG_BIN:

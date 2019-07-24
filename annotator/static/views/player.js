@@ -108,7 +108,6 @@ class PlayerView {
         }
         else {
             this.$('loader').css({display: 'none'});
-            this.jumpToTimeAndPause(this.video.currentTime);
         }
         this._loading = val;
     }
@@ -259,6 +258,11 @@ class PlayerView {
         this.video.onPlaying(() => {
             clearInterval(this.manualTimeupdateTimerId);
             this.manualTimeupdateTimerId = setInterval(() => {
+                if(this.video.paused){
+                     if(this.loading)
+                        this.loading = false;
+                     this.video.play();
+                 }
                 this.video.triggerTimerUpdateHandler();
             }, this.TIME_UPDATE_DELAY);
         });
@@ -274,8 +278,6 @@ class PlayerView {
         });
         this.video.onBuffering((isBuffering) => {
             this.loading = isBuffering;
-            //this.pause()
-
         });
     }
 

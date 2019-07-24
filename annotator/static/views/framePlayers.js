@@ -113,10 +113,12 @@ class ImageFramePlayer extends AbstractFramePlayer {
         image.src = this.imgPlayer.frames[0].src;
     }
     get videoWidth() {
-        return this.imgPlayer.frames[this.imgPlayer.getCurrentFrame()].width;
+        var dim = imgDimensions[this.imgPlayer.getCurrentFrame()];
+        return dim[0];
     }
     get videoHeight() {
-        return this.imgPlayer.frames[this.imgPlayer.getCurrentFrame()].height;
+        var dim = imgDimensions[this.imgPlayer.getCurrentFrame()];
+        return dim[1];
     }
 
     get viewWidth() {
@@ -184,7 +186,6 @@ class ImageFramePlayer extends AbstractFramePlayer {
      */
     onPlaying(callback) {
         this.onPlayingHandlers.push(callback);
-        //console.log("hey I am here !!");
         if (!this.paused && callback)
             callback();
 

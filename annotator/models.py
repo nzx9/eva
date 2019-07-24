@@ -69,8 +69,8 @@ class Video(models.Model):
     @property
     def image_list(self):
         files = self.uploadfile_set.filter(file_type=UploadFile.IMAGE)
-        urls = sorted([x.file.url for x in files])
-        return urls
+        images_info = sorted([(x.file.url, x.width, x.height) for x in files])
+        return images_info
 
     def __str__(self):
         return '/video/{}'.format(self.id)
@@ -78,7 +78,7 @@ class Video(models.Model):
     @property
     def images(self):
         files = self.uploadfile_set.filter(file_type=UploadFile.IMAGE)
-        files = sorted([x.file.name for x in files])
+        files = sorted([(x.file.name, x.width, x.height) for x in files])
         return files
         
     @property
@@ -97,6 +97,8 @@ class UploadFile(models.Model):
     file = models.FileField(upload_to=unique_path)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     video = models.ForeignKey('Video', on_delete=models.CASCADE, null=True)
+    width = models.IntegerField(default=0)
+    height = models.IntegerField(default=0)
     file_type = models.CharField(
         max_length=5, choices=FILE_TYPES, default=IMAGE)
 

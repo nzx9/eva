@@ -171,6 +171,10 @@ def extract_frames(video_id):
                  for x in os.listdir(img_dir_abs) if x.endswith(img_ext)]
     for file in out_files:
         file_db = UploadFile.objects.create()
+        with open(os.path.join(settings.MEDIA_ROOT, file), 'rb') as f:
+            img_dimension = get_img_size_from_buffer(f)
+        file_db.width = img_dimension[1]
+        file_db.height = img_dimension[0]
         file_db.video = video
         file_db.file = file
         file_db.save()
@@ -216,7 +220,10 @@ def convert_to_darknet(video):
         labels = parse_annotations(video.annotation)
         
         for key, file in enumerate(files):
-            filename = os.path.splitext(os.path.split(file)[1])[0] + '.txt'
+            if file[1] and file[2]:  # read width and height of each image
+                width = file[1]
+                height = file[2]
+            filename = os.path.splitext(os.path.split(file[0])[1])[0] + '.txt'
             if key in labels:
                 frame = []
                 for label in labels[key]:
@@ -263,10 +270,13 @@ def convert_to_pascal_voc(video):
         labels = parse_annotations(video.annotation)
 
         for key, file in enumerate(files):
-            filename = os.path.splitext(os.path.split(file)[1])[0] + '.xml'
+            if file[1] and file[2]:  # read width and height of each image
+                width = file[1]
+                height = file[2]
+            filename = os.path.splitext(os.path.split(file[0])[1])[0] + '.xml'
             
             root = ET.Element('annotation')
-            ET.SubElement(root, 'filename').text = os.path.split(file)[1]
+            ET.SubElement(root, 'filename').text = os.path.split(file[0])[1]
             ET.SubElement(root, 'folder').text = video.name
 
             size = ET.SubElement(root, 'size')

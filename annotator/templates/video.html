@@ -6,7 +6,7 @@
 <link rel="stylesheet" type="text/css" href="/static/vendor/contextmenu/jquery.contextMenu.css" />
   <script>
     video = {{ video_data|safe }};
-
+    imgDimensions = {{image_list_dimensions}}
     imageList = {{image_list|safe}};
     helpEmbedded = {{ help_embed|yesno:'true,false,false' }};
     offset = {{offset}}
