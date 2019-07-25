@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from annotator.KCFtracker import compile_fhog
+from annotator.kcftracker import compile_fhog
 
 
 class Command(BaseCommand):

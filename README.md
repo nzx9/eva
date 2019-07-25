@@ -26,7 +26,7 @@ python -m pip install --upgrade pip
 pip install virtualenv
 virtualenv venv
 venv\Scripts\activate.bat
-pip install --upgrade -r requirements.txt
+pip install -r requirements.txt
 python manage.py preparetracker
 python manage.py migrate
 python manage.py collectstatic
@@ -53,7 +53,7 @@ pip3 install virtualenv
 python3 -m virtualenv venv
 . venv/bin/activate
 pip install --upgrade pip
-pip install --upgrade -r requirements.txt
+pip install -r requirements.txt
 python manage.py preparetracker
 python manage.py migrate
 python manage.py collectstatic
@@ -87,4 +87,4 @@ In Chrome or Firefox open the http link: http://127.0.0.1:8000/
 
 ### Changing parameters:
 
-You can change the parameters of the tracker by editing KCF_config.yml located at annotator/KCFtracker.
+You can change the parameters of the tracker by editing `cfg/KCF_config.yml`.

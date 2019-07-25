@@ -20,7 +20,7 @@ from .models import Video, UploadFile, LabelMapping
 from celery import shared_task
 from django.conf import settings
 from .utils import *
-from .KCFtracker import kcftracker
+from .kcftracker import kcftracker
 
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
