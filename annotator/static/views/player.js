@@ -308,7 +308,7 @@ class PlayerView {
             this.$on('control-step-backward', 'click', (event) => {this.video.previousFrame()});
             this.$on('control-step-forward', 'click', (event) => {this.nextFrame()});
             this.$on('control-goto-start', 'click', () => this.jumpToTimeAndPause(0));
-            this.$on('control-goto-end', 'click', () => this.jumpToTimeAndPause(this.video.duration));
+            this.$on('control-goto-end', 'click', () => this.jumpToTimeAndPause(this.video.duration + this.offset));
             this.$on('control-delete-keyframe', 'click', () => this.deleteSingleKeyframe());
             this.$on('control-delete-all-future-keyframes', 'click', () => this.deleteKeyframes());
             this.$on('control-start-tracker', 'click', () => this.runTrackerAll());
