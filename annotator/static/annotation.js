@@ -201,7 +201,7 @@ class Annotation {
     deleteKeyframeAtTimeAndFuture(time, usePreciseFrameMatching) {
         var {closestIndex, nextIndex, bounds} = this.getFrameAtTime(time);
 
-        if (closestIndex == null && nextIndex != null) return false;
+        if (closestIndex == null && nextIndex == null) return false;
         
         this.keyframes.splice(closestIndex, this.keyframes.length - closestIndex);
         
