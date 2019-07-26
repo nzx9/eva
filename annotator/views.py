@@ -101,12 +101,13 @@ class VideoView(View):
         label_data = []
         video_labels = video.project.labels.all()
         project_name = Project.objects.get(id=video.project_id)
-        video_display_data = {'project': project_name, 'name': video.name}
+
         for v_label in video_labels:
             label_data.append({'name': v_label.name, 'color': v_label.color})
 
         first, last, start_of_slice, end_of_slice = self.get_video_slice(video_index, length_image_list)
         video_slice = slice(start_of_slice, end_of_slice)
+        video_display_data = {'project':project_name, 'name':video.name, 'images_left':length_image_list-end_of_slice}
         video_chunk = []
         video_dimension = []
         for img in video.image_list[video_slice]:
