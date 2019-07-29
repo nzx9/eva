@@ -40,9 +40,7 @@ In Chrome or Firefox go to http://127.0.0.1:8000/.
 ### Linux:
 
 Requirements:
-* Python 3.6.5, redis, ffmpeg. On Ubuntu these packages can be installed
-  with the following command (tested on 18.04):
-  `sudo apt-get -y install python3 python3-pip ffmpeg redis g++`
+* Python 3.6, redis, ffmpeg, g++. 
 * Browser: Google-Chrome Version > 49.0, Firefox Version > 45.0
 
 Install:
@@ -88,3 +86,6 @@ In Chrome or Firefox open the http link: http://127.0.0.1:8000/
 ### Changing parameters:
 
 You can change the parameters of the tracker by editing `cfg/KCF_config.yml`.
+
+### Acknowledgement:
+Thanks to Ludwig Thaung for his contribution in building the EVA tool.
