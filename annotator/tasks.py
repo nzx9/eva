@@ -25,11 +25,14 @@ from .kcftracker import kcftracker
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 
+
 class TrackerError(Exception):
     pass
 
+
 class VideoError(Exception):
     pass
+
 
 @shared_task
 def tracker_task(video_id, frame_no, bbox):
@@ -120,7 +123,8 @@ def create_cache_task(video_id):
         file_amount = len(files)
         # Let's partition the work into batches to avoid memory issues
         batch_size = 100
-        for batch_index in range(0, round(file_amount / batch_size)):
+        loop_till = round(file_amount / batch_size) if round(file_amount / batch_size) else 1
+        for batch_index in range(0, loop_till):
             start_index = batch_index * batch_size
             end_index = min((batch_index + 1) * batch_size, file_amount)
             images = list()
