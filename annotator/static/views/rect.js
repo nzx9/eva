@@ -72,10 +72,19 @@ class Rect {
         // Raphel rect element
         this.$el = null;
         
+        // lock unlock feature
         this.locked = false;
         this.$lock_el = null;
         this.lock_el = null;
         this.lock_offset = 0;
+
+        //display label over rect
+        this.$label_el = null;
+        this.label_el = null;
+        this.label_offset = 0;
+
+        this.$label_background_el = null;
+        this.label_background_el = null;
 
         // jQuer rect element
         this.el = null;
@@ -116,9 +125,9 @@ class Rect {
         this.$el = this.$paper.rect(0, 0, this.$paper.width, this.$paper.height);
         this.el = this.$el.node;
         $(this.el).attr("id", this.$el.id);
-        
+
         var {scale} = this.getPlayerMetrics();
-        
+
         this.$lock_el = this.$paper.text(this.$paper.width/2, this.$paper.height/2, '\uf023')
         this.lock_el = this.$lock_el.node;
         $(this.lock_el).removeAttr('style');
@@ -129,6 +138,21 @@ class Rect {
         this.lock_offset = 15/scale;
         $(this.lock_el).addClass('fas');
         $(this.lock_el).css({visibility: "hidden"});
+
+        this.$label_el = this.$paper.text(this.$paper.width/2, this.$paper.height/2,"");
+        this.label_el = this.$label_el.node;
+        $(this.label_el).removeAttr('style');
+        this.$label_el.attr({
+                fill: "white",
+                "font-size": 15/scale,
+            });
+        this.label_offset = 8/scale;
+        $(this.label_el).css({visibility: "hidden"});
+
+        this.$label_background_el = this.$paper.rect(0, 0, 0, 0);
+        this.label_background_el = this.$label_background_el.node;
+        $(this.label_background_el).removeAttr('style');
+        $(this.label_background_el).css({visibility: "hidden"});
 
         //container
         this.applyPreAttachedAppearance();
@@ -161,13 +185,19 @@ class Rect {
 
     appear({real, selected, singlekeyframe}) {
         this.setClassNameExts({real, selected, singlekeyframe});
-        
+
         if (real) {
+            this.$label_el.attr('text', this._title);
+            $(this.label_el).css({visibility: "visible"});
+            $(this.label_background_el).css({visibility: "visible"});
+            this.$label_el.toFront();
             if (this.locked) {
                 $(this.lock_el).css({visibility: "visible"});
             }
         } else {
             $(this.lock_el).css({visibility: "hidden"});
+            $(this.label_el).css({visibility: "hidden"});
+            $(this.label_background_el).css({visibility: "hidden"});
         }
 
         if (selected === true) {
@@ -288,10 +318,21 @@ class Rect {
         }
         else {
             this.$el.attr(Bounds.toAttrs(bounds));
-            this.$lock_el.attr({x: bounds.xMin + this.lock_offset, 
+            this.$lock_el.attr({x: bounds.xMin + this.lock_offset,
                                 y: bounds.yMin + this.lock_offset});
-        }
+            this.$label_el.attr({x: (bounds.xMax - (bounds.xMax - bounds.xMin)/2) ,
+                                y: bounds.yMax +  this.label_offset});
+            var box = this.$label_el.getBBox();
+            this.$label_background_el.attr({
+                    x: box.x,
+                    y: box.y,
+                    width: box.width,
+                    height: box.height,
+                    fill: '#337ab7',
+                    stroke: '#337ab7'
 
+            });
+        }
         this._bounds = bounds;
 
         // Trigger event
