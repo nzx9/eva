@@ -34,7 +34,9 @@ python manage.py collectstatic
 
 Extract ffmpeg archive and copy `ffmpeg.exe`, from the bin folder, to the root
 of the `tool\` folder e.g. if you clone the repository as `eva` place the ffmpeg.exe inside
-`eva\`. Start the app by running the `start.bat` file.
+`eva\`.
+
+Start the app by running the `start.bat` file.
 In Chrome or Firefox go to http://127.0.0.1:8000/.
 
 ### Linux:
