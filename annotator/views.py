@@ -239,7 +239,7 @@ class UploadVideos(View):
                 'size': file.file.size,
                 # 'deleteUrl': reverse('delete_file', args=(file.id,)),
                 'deleteType': 'POST',
-                'type': 'image/png'
+                'type': 'image/%s' % (settings.IMAGE_FORMAT)
             })
 
         response_data = {

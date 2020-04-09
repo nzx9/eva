@@ -44,6 +44,8 @@ ALLOWED_HOSTS = ["*"]
 
 MAX_ZIPFILES = 10
 
+IMAGE_FORMAT = 'png' # Choose output type either png or jpeg
+
 # Application definition
 
 INSTALLED_APPS = [

@@ -149,7 +149,7 @@ def create_cache_task(video_id):
 
 @shared_task
 def extract_frames(video_id):
-    img_ext = 'png'
+    img_ext = settings.IMAGE_FORMAT
     
     video = Video.objects.get(id=video_id)
     files = video.uploadfile_set.filter(file_type=UploadFile.VIDEO)
