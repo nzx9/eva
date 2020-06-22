@@ -6,3 +6,4 @@ opencv-contrib-python>=4.1,<4.1.0.26
 numpy>=1.16.4,<1.16.5
 numba>=0.44.1,<0.44.2
 pyyaml>=5.1.1,<5.1.2
+llvmlite==0.32.1
