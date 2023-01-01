@@ -49,6 +49,7 @@ IMAGE_FORMAT = 'png' # Choose output type either png or jpeg
 # Application definition
 
 INSTALLED_APPS = [
+    'eva',
     'annotator',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -64,12 +65,12 @@ FILE_UPLOAD_HANDLERS = [
 ]
 
 
-MIDDLEWARE_CLASSES = [
+MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
+    # 'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -152,7 +153,7 @@ MEDIA_URL = '/media/'
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
-STATIC_URL = '/static/'
+STATIC_URL = 'static/'
 
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 
@@ -174,6 +175,7 @@ CELERY_TASK_SERIALIZER = 'json'
 
 TRACKER_SETTINGS = os.path.join(BASE_DIR, 'cfg', 'KCF_config.yml')
 
+DEFAULT_AUTO_FIELD='django.db.models.BigAutoField'
 # Location of the ffmpeg binary
 FFMPEG_BIN = shutil.which('ffmpeg')
 if FFMPEG_BIN:
