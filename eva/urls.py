@@ -1,8 +1,8 @@
-from django.conf.urls import url
+from django.urls import re_path as url
 from django.conf.urls.static import static
 from django.conf import settings
 from django.contrib import admin
-from django.contrib.auth.views import login, logout
+from django.contrib.auth.views import LoginView, LogoutView
 from django.views.generic.base import RedirectView
 from django.views.static import serve
 
@@ -17,11 +17,11 @@ urlpatterns = [
     url(r'^projects/$', projects, name='define_projects'),
     url(r'^video/(\d+)/(\d+)/$', VideoView.as_view(), name='video'),
     url(r'^annotation/(\d+)/$', AnnotationView.as_view()),
-    url(r'^login/$', login,
+    url(r'^login/$', LoginView.as_view(),
         {'template_name': 'admin/login.html',
             'extra_context': {'site_header': 'BeaverDam Login'}
         }, name='login'),
-    url(r'^logout/$', logout),
+    url(r'^logout/$', LogoutView.as_view(), name='logout'),
     url(r'^accounts/', RedirectView.as_view(url='/')),
     url(r'^admin/', admin.site.urls),
     url(r'^upload/(?P<name>.*)/done/$', UploadVideoDone.as_view(), name='upload_video_done'),
