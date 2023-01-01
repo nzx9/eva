@@ -1,18 +1,20 @@
-EVA: Video Annotation Tool
+EVA 2: Video Annotation Tool
 =====================================================
 
-EVA is a web-based tool for efficient annotation of videos and image
+EVA 2 is a web-based tool for efficient annotation of videos and image
 sequences. It is a re-design of BeaverDam with additional
 tracking capabilities. The annotation is done on a bounding box level and
 the labels can be exported in YOLO or Pascal VOC format.
 
-<img src="https://github.com/Ericsson/eva/raw/master/annotator/static/img/eva.gif" style="display:block;margin-left:auto;margin-right:auto;">
+*Note: Eva 2 is fork from Ericcson/eva. It had dependency issues. That issues are fixed and you can use newer version of python and other packages now*
+
+<img src="https://github.com/nzx9/eva/raw/master/annotator/static/img/eva.gif" style="display:block;margin-left:auto;margin-right:auto;">
 
 
 ## Setup
 ### Windows:
 Requirements:
-* Python 3.6: https://www.python.org/downloads/  (not version 3.6.7)
+* Python 3.10: https://www.python.org/downloads/
 * Redis: https://github.com/MicrosoftArchive/redis/releases/download/win-3.2.100/Redis-x64-3.2.100.msi
 * Browser: Google-Chrome Version > 49.0, Firefox Version > 45.0
 * FFMPEG (optional for video upload): https://ffmpeg.zeranoe.com/builds/
@@ -20,7 +22,7 @@ Requirements:
 
 Install:
 ```powershell
-git clone https://github.com/Ericsson/eva.git
+git clone https://github.com/nzx9/eva2.git
 cd eva
 python -m pip install --upgrade pip
 pip install virtualenv
@@ -42,12 +44,12 @@ In Chrome or Firefox go to http://127.0.0.1:8000/.
 ### Linux:
 
 Requirements:
-* Python 3.6, redis, ffmpeg, g++. 
+* Python 3.10, redis, ffmpeg, g++. 
 * Browser: Google-Chrome Version > 49.0, Firefox Version > 45.0
 
 Install:
 ```bash
-git clone https://github.com/Ericsson/eva.git
+git clone https://github.com/nzx9/eva.git
 cd eva
 pip3 install virtualenv
 python3 -m virtualenv venv
